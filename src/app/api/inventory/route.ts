@@ -45,9 +45,9 @@ export async function GET(request: NextRequest) {
     // حساب الإحصائيات
     const stats = {
       totalProducts: inventoryProducts.length,
-      totalStock: inventoryProducts.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
-      totalValue: inventoryProducts.reduce((sum: number, p: any) => sum + ((p.quantity || 0) * (p.price || 0)), 0),
-      lowStock: inventoryProducts.filter((p: any) => (p.quantity || 0) <= (p.minStock || 5)).length,
+      totalStock: inventoryProducts.reduce((sum: number, p: any) => sum + (p.currentStock || 0), 0),
+      totalValue: inventoryProducts.reduce((sum: number, p: any) => sum + ((p.currentStock || 0) * (p.price || 0)), 0),
+      lowStock: inventoryProducts.filter((p: any) => (p.currentStock || 0) <= (p.minStock || 5)).length,
     };
 
     return NextResponse.json({
@@ -55,11 +55,12 @@ export async function GET(request: NextRequest) {
         id: i + 1,
         ...c,
         count: inventoryProducts.filter((p: any) => p.name === c.name).length,
-        stock: inventoryProducts.find((p: any) => p.name === c.name)?.quantity || 0,
+        stock: inventoryProducts.find((p: any) => p.name === c.name)?.currentStock || 0,
       })),
       products: inventoryProducts.map((p: any) => ({
         ...p,
-        category: p.name, // التصنيف = اسم المنتج
+        quantity: p.currentStock, // للتوافق
+        category: p.name,
       })),
       transactions: transactions.map((t: any) => ({
         ...t,
@@ -99,12 +100,15 @@ export async function POST(request: NextRequest) {
       if (existing && existing.length > 0) {
         // تحديث الكمية
         const product = existing[0];
-        const newQty = (product.quantity || 0) + (quantity || 0);
+        const newQty = (product.currentStock || 0) + (quantity || 0);
         
         await fetch(`${SUPABASE_URL}/rest/v1/Product?id=eq.${product.id}`, {
           method: 'PATCH',
           headers: getHeaders(),
-          body: JSON.stringify({ quantity: newQty }),
+          body: JSON.stringify({ 
+            currentStock: newQty,
+            updatedAt: new Date().toISOString(),
+          }),
         });
 
         // إضافة حركة
@@ -134,12 +138,13 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         headers: { ...getHeaders(), 'Prefer': 'return=representation' },
         body: JSON.stringify({
-          name: category, // الاسم = التصنيف
+          name: category,
           categoryId: categoryId,
-          quantity: quantity || 0,
-          type: 'قطعة',
+          currentStock: quantity || 0,
+          unit: 'قطعة',
           minStock: 0,
           price: 0,
+          updatedAt: new Date().toISOString(),
         }),
       });
 
@@ -181,14 +186,17 @@ export async function POST(request: NextRequest) {
 
       const product = products[0];
       const newQty = type === 'in' 
-        ? product.quantity + quantity 
-        : Math.max(0, product.quantity - quantity);
+        ? product.currentStock + quantity 
+        : Math.max(0, product.currentStock - quantity);
 
       // تحديث الكمية
       await fetch(`${SUPABASE_URL}/rest/v1/Product?id=eq.${id}`, {
         method: 'PATCH',
         headers: getHeaders(),
-        body: JSON.stringify({ quantity: newQty }),
+        body: JSON.stringify({ 
+          currentStock: newQty,
+          updatedAt: new Date().toISOString(),
+        }),
       });
 
       // إضافة حركة
