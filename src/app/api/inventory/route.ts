@@ -1,117 +1,193 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 
-// GET - جلب كل حركات المخزون
+const SUPABASE_URL = 'https://pypomilurmkzlceecukr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_R30YtCj6dqhLwjTQsrR1Uw_tcItK0JV';
+
+const getHeaders = () => ({
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json',
+});
+
+// التصنيفات الافتراضية
+const DEFAULT_CATEGORIES = [
+  { id: 1, name: 'رواتر', nameEn: 'Routers', icon: '📡' },
+  { id: 2, name: 'كبل', nameEn: 'Cables', icon: '🔌' },
+  { id: 3, name: 'سويتش', nameEn: 'Switches', icon: '🔀' },
+  { id: 4, name: 'أجهزة شبكات', nameEn: 'Network Devices', icon: '🌐' },
+  { id: 5, name: 'إكسسوارات', nameEn: 'Accessories', icon: '🔧' },
+];
+
+// GET - جلب المخزون
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
-    const productId = searchParams.get('productId');
+    const category = searchParams.get('category');
 
-    const transactions = await db.inventoryTransaction.findMany({
-      where: {
-        ...(type ? { type } : {}),
-        ...(productId ? { productId: parseInt(productId) } : {}),
-      },
-      include: {
-        product: {
-          include: {
-            category: true,
-          },
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-      take: 100,
-    });
+    // جلب المنتجات
+    let url = `${SUPABASE_URL}/rest/v1/Inventory?select=*&order=category,name`;
+    if (category) {
+      url += `&category=eq.${category}`;
+    }
 
-    return NextResponse.json(transactions);
-  } catch (error) {
-    console.error('Error fetching inventory transactions:', error);
-    return NextResponse.json(
-      { error: 'حدث خطأ أثناء جلب حركات المخزون' },
-      { status: 500 }
+    const res = await fetch(url, { headers: getHeaders() });
+    let products = await res.json();
+
+    // إذا الجدول فارغ أو غير موجود، نرجع البيانات الافتراضية
+    if (!products || products.length === 0 || products.code) {
+      products = [];
+    }
+
+    // جلب حركات المخزون
+    const transactionsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/InventoryTransaction?select=*&order=date.desc&limit=50`,
+      { headers: getHeaders() }
     );
+    let transactions = await transactionsRes.json();
+    if (!transactions || transactions.code) {
+      transactions = [];
+    }
+
+    // إحصائيات
+    const stats = {
+      totalProducts: products.length,
+      totalStock: products.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
+      totalValue: products.reduce((sum: number, p: any) => sum + ((p.quantity || 0) * (p.price || 0)), 0),
+      lowStock: products.filter((p: any) => (p.quantity || 0) <= (p.minStock || 5)).length,
+      byCategory: DEFAULT_CATEGORIES.map(cat => ({
+        ...cat,
+        count: products.filter((p: any) => p.category === cat.name).length,
+        stock: products.filter((p: any) => p.category === cat.name)
+          .reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
+      })),
+    };
+
+    return NextResponse.json({
+      categories: DEFAULT_CATEGORIES,
+      products,
+      transactions,
+      stats,
+    });
+  } catch (error) {
+    console.error('Error fetching inventory:', error);
+    return NextResponse.json({
+      categories: DEFAULT_CATEGORIES,
+      products: [],
+      transactions: [],
+      stats: { totalProducts: 0, totalStock: 0, totalValue: 0, lowStock: 0, byCategory: DEFAULT_CATEGORIES },
+    });
   }
 }
 
-// POST - إضافة حركة مخزون جديدة
+// POST - إضافة/تحديث منتج
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, type, quantity, reason, recipient, supplier, price, notes } = body;
+    const { action, data } = body;
 
-    if (!productId || !type || !quantity) {
-      return NextResponse.json(
-        { error: 'المنتج والنوع والكمية مطلوبة' },
-        { status: 400 }
-      );
-    }
-
-    if (type !== 'in' && type !== 'out') {
-      return NextResponse.json(
-        { error: 'النوع يجب أن يكون "داخل" أو "خارج"' },
-        { status: 400 }
-      );
-    }
-
-    // إنشاء الحركة وتحديث المخزون في نفس الوقت
-    const transaction = await db.$transaction(async (tx) => {
-      // جلب المنتج الحالي
-      const product = await tx.product.findUnique({
-        where: { id: parseInt(productId) },
+    // إضافة منتج جديد
+    if (action === 'add-product') {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/Inventory`, {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Prefer': 'return=representation' },
+        body: JSON.stringify({
+          name: data.name,
+          category: data.category,
+          quantity: data.quantity || 0,
+          minStock: data.minStock || 5,
+          price: data.price || 0,
+          serialNumber: data.serialNumber || null,
+          location: data.location || null,
+          notes: data.notes || null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
       });
 
-      if (!product) {
-        throw new Error('المنتج غير موجود');
+      const result = await res.json();
+      if (!res.ok) {
+        return NextResponse.json({ error: 'خطأ في إضافة المنتج', details: result }, { status: 400 });
       }
 
-      // التحقق من الكمية في حالة الإخراج
-      if (type === 'out' && product.currentStock < quantity) {
-        throw new Error('الكمية المطلوبة أكبر من المخزون الحالي');
+      // إضافة حركة مخزون
+      if (data.quantity > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/InventoryTransaction`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            productName: data.name,
+            category: data.category,
+            type: 'in',
+            quantity: data.quantity,
+            reason: 'إضافة جديدة',
+            date: new Date().toISOString(),
+          }),
+        });
       }
 
-      // إنشاء الحركة
-      const newTransaction = await tx.inventoryTransaction.create({
-        data: {
-          productId: parseInt(productId),
+      return NextResponse.json({ success: true, product: result[0] });
+    }
+
+    // تحديث كمية
+    if (action === 'update-stock') {
+      const { id, quantity, type, reason, recipient } = data;
+
+      // جلب المنتج الحالي
+      const productRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/Inventory?id=eq.${id}&select=*`,
+        { headers: getHeaders() }
+      );
+      const products = await productRes.json();
+      if (!products || products.length === 0) {
+        return NextResponse.json({ error: 'المنتج غير موجود' }, { status: 404 });
+      }
+
+      const product = products[0];
+      const newQuantity = type === 'in' 
+        ? product.quantity + quantity 
+        : Math.max(0, product.quantity - quantity);
+
+      // تحديث الكمية
+      await fetch(`${SUPABASE_URL}/rest/v1/Inventory?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ 
+          quantity: newQuantity,
+          updatedAt: new Date().toISOString() 
+        }),
+      });
+
+      // إضافة حركة
+      await fetch(`${SUPABASE_URL}/rest/v1/InventoryTransaction`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          productName: product.name,
+          category: product.category,
           type,
           quantity,
           reason: reason || null,
           recipient: recipient || null,
-          supplier: supplier || null,
-          price: price || null,
-          notes: notes || null,
-        },
-        include: {
-          product: {
-            include: {
-              category: true,
-            },
-          },
-        },
+          date: new Date().toISOString(),
+        }),
       });
 
-      // تحديث المخزون
-      const newStock = type === 'in'
-        ? product.currentStock + quantity
-        : product.currentStock - quantity;
+      return NextResponse.json({ success: true, newQuantity });
+    }
 
-      await tx.product.update({
-        where: { id: parseInt(productId) },
-        data: { currentStock: newStock },
+    // حذف منتج
+    if (action === 'delete-product') {
+      const { id } = data;
+      await fetch(`${SUPABASE_URL}/rest/v1/Inventory?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
       });
+      return NextResponse.json({ success: true });
+    }
 
-      return newTransaction;
-    });
-
-    return NextResponse.json(transaction, { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating inventory transaction:', error);
-    return NextResponse.json(
-      { error: error.message || 'حدث خطأ أثناء إضافة الحركة' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'إجراء غير معروف' }, { status: 400 });
+  } catch (error) {
+    console.error('Error in inventory action:', error);
+    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 });
   }
 }

@@ -254,6 +254,13 @@ export default function Home() {
   const [editingDebt, setEditingDebt] = useState<number | null>(null);
   const [debtForm, setDebtForm] = useState<Partial<Debt>>({ amount: 0 });
 
+  // Inventory
+  const [inventory, setInventory] = useState<any>({ products: [], categories: [], transactions: [], stats: {} });
+  const [inventoryCategory, setInventoryCategory] = useState<string>('all');
+  const [showInventoryForm, setShowInventoryForm] = useState(false);
+  const [inventoryForm, setInventoryForm] = useState<any>({ name: '', category: 'رواتر', quantity: 0, minStock: 5, price: 0 });
+  const [loadingInventory, setLoadingInventory] = useState(false);
+
   // Settings
   const [settings, setSettings] = useState<Settings>({
     adminPassword: '1998',
@@ -435,6 +442,7 @@ export default function Home() {
       loadSubscribers();
       loadTickets();
       loadDebts();
+      loadInventory();
       loadSettings();
       loadMikrotikDevices();
       loadPPPoEUsers(); // تحميل حسابات PPPoE تلقائياً
@@ -519,6 +527,81 @@ export default function Home() {
       const offlineData = await getAllFromStore<Debt>('debts');
       if (offlineData.length > 0) setDebts(offlineData);
     }
+  };
+
+  // Load Inventory
+  const loadInventory = async () => {
+    setLoadingInventory(true);
+    try {
+      const res = await fetch('/api/inventory');
+      const data = await res.json();
+      setInventory(data);
+    } catch (e) {
+      console.error('Load inventory error:', e);
+    }
+    setLoadingInventory(false);
+  };
+
+  // Add Inventory Product
+  const handleAddInventoryProduct = async () => {
+    if (!inventoryForm.name) return;
+    setLoadingInventory(true);
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add-product', data: inventoryForm }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowInventoryForm(false);
+        setInventoryForm({ name: '', category: 'رواتر', quantity: 0, minStock: 5, price: 0 });
+        loadInventory();
+      } else {
+        alert('خطأ: ' + data.error);
+      }
+    } catch (e) {
+      alert('حدث خطأ');
+    }
+    setLoadingInventory(false);
+  };
+
+  // Update Stock
+  const handleUpdateStock = async (productId: number, type: 'in' | 'out', quantity: number, reason?: string, recipient?: string) => {
+    setLoadingInventory(true);
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update-stock', data: { id: productId, quantity, type, reason, recipient } }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadInventory();
+      } else {
+        alert('خطأ: ' + data.error);
+      }
+    } catch (e) {
+      alert('حدث خطأ');
+    }
+    setLoadingInventory(false);
+  };
+
+  // Delete Product
+  const handleDeleteProduct = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
+    setLoadingInventory(true);
+    try {
+      await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete-product', data: { id } }),
+      });
+      loadInventory();
+    } catch (e) {
+      alert('حدث خطأ');
+    }
+    setLoadingInventory(false);
   };
 
   // Load Settings
@@ -1915,6 +1998,7 @@ export default function Home() {
               { id: 'dashboard', label: 'الرئيسية', icon: '🏠' },
               { id: 'subscribers', label: 'المشتركين', icon: '👥' },
               { id: 'debts', label: 'الديون', icon: '💰' },
+              { id: 'inventory', label: 'المخزون', icon: '📦' },
               { id: 'tickets', label: 'الشكاوى', icon: '🎫' },
               { id: 'notifications', label: 'الإشعارات', icon: '🔔' },
               { id: 'payments', label: 'الدفعات', icon: '💳' },
@@ -2565,6 +2649,226 @@ export default function Home() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Inventory Tab */}
+          {activeTab === 'inventory' && (
+            <div className="space-y-4">
+              {/* Header */}
+              <div className={`${cardClass} rounded-xl p-4 flex justify-between items-center`}>
+                <div>
+                  <h3 className={`text-lg font-bold ${textClass}`}>📦 إدارة المخزون</h3>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    رواتر • كبل • سويتش • أجهزة شبكات
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowInventoryForm(true)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+                >
+                  + إضافة منتج
+                </button>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className={`${cardClass} rounded-xl p-4 text-center`}>
+                  <p className="text-2xl font-bold text-indigo-400">{inventory.stats?.totalProducts || 0}</p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>المنتجات</p>
+                </div>
+                <div className={`${cardClass} rounded-xl p-4 text-center`}>
+                  <p className="text-2xl font-bold text-green-400">{inventory.stats?.totalStock || 0}</p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>إجمالي المخزون</p>
+                </div>
+                <div className={`${cardClass} rounded-xl p-4 text-center`}>
+                  <p className="text-2xl font-bold text-yellow-400">{inventory.stats?.lowStock || 0}</p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>مخزون منخفض</p>
+                </div>
+                <div className={`${cardClass} rounded-xl p-4 text-center`}>
+                  <p className="text-2xl font-bold text-cyan-400">{(inventory.stats?.totalValue || 0).toLocaleString()}</p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>القيمة (ل.س)</p>
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className={`${cardClass} rounded-xl p-4`}>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <button 
+                    onClick={() => setInventoryCategory('all')}
+                    className={`px-4 py-2 rounded-lg text-sm ${inventoryCategory === 'all' ? 'bg-indigo-600 text-white' : darkMode ? 'bg-[#334155]' : 'bg-gray-100'}`}
+                  >
+                    الكل
+                  </button>
+                  {inventory.categories?.map((cat: any) => (
+                    <button 
+                      key={cat.id}
+                      onClick={() => setInventoryCategory(cat.name)}
+                      className={`px-4 py-2 rounded-lg text-sm ${inventoryCategory === cat.name ? 'bg-indigo-600 text-white' : darkMode ? 'bg-[#334155]' : 'bg-gray-100'}`}
+                    >
+                      {cat.icon} {cat.name} ({cat.count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Products Table */}
+              <div className={`${cardClass} rounded-xl overflow-hidden`}>
+                <table className="w-full">
+                  <thead className={darkMode ? 'bg-[#334155]' : 'bg-gray-50'}>
+                    <tr>
+                      <th className={`text-right p-3 ${textClass}`}>المنتج</th>
+                      <th className={`text-right p-3 ${textClass}`}>التصنيف</th>
+                      <th className={`text-right p-3 ${textClass}`}>الكمية</th>
+                      <th className={`text-right p-3 ${textClass}`}>السعر</th>
+                      <th className={`text-right p-3 ${textClass}`}>إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(inventory.products || [])
+                      .filter((p: any) => inventoryCategory === 'all' || p.category === inventoryCategory)
+                      .map((product: any) => (
+                      <tr key={product.id} className={`border-t ${darkMode ? 'border-[#334155]' : 'border-gray-200'}`}>
+                        <td className={`p-3 ${textClass}`}>
+                          <p className="font-medium">{product.name}</p>
+                          {product.quantity <= product.minStock && (
+                            <span className="text-xs text-yellow-400">⚠️ مخزون منخفض</span>
+                          )}
+                        </td>
+                        <td className={`p-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{product.category}</td>
+                        <td className={`p-3 ${product.quantity <= product.minStock ? 'text-yellow-400 font-bold' : textClass}`}>
+                          {product.quantity}
+                        </td>
+                        <td className={`p-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {(product.price || 0).toLocaleString()} ل.س
+                        </td>
+                        <td className="p-3">
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => {
+                                const qty = prompt('كمية الإدخال:');
+                                if (qty) handleUpdateStock(product.id, 'in', parseInt(qty), 'إدخال');
+                              }}
+                              className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded"
+                            >
+                              ➕ إدخال
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const qty = prompt('كمية الإخراج:');
+                                const recipient = prompt('اسم المستلم:');
+                                if (qty) handleUpdateStock(product.id, 'out', parseInt(qty), 'إخراج', recipient || undefined);
+                              }}
+                              className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded"
+                            >
+                              ➖ إخراج
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {(inventory.products || []).length === 0 && (
+                      <tr>
+                        <td colSpan={5} className={`p-8 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          لا توجد منتجات - أضف منتج جديد
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Recent Transactions */}
+              {(inventory.transactions || []).length > 0 && (
+                <div className={`${cardClass} rounded-xl p-4`}>
+                  <h4 className={`font-bold mb-3 ${textClass}`}>📋 آخر الحركات</h4>
+                  <div className="space-y-2">
+                    {inventory.transactions.slice(0, 10).map((tx: any, i: number) => (
+                      <div key={i} className={`flex justify-between items-center p-2 rounded ${darkMode ? 'bg-[#334155]' : 'bg-gray-50'}`}>
+                        <div>
+                          <span className={tx.type === 'in' ? 'text-green-400' : 'text-orange-400'}>
+                            {tx.type === 'in' ? '📥 إدخال' : '📤 إخراج'}
+                          </span>
+                          <span className={`mr-2 ${textClass}`}>{tx.productName || tx.name}</span>
+                          {tx.recipient && <span className="text-xs text-gray-400 mr-2">({tx.recipient})</span>}
+                        </div>
+                        <span className={textClass}>{tx.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add Product Form */}
+              {showInventoryForm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className={`${cardClass} rounded-xl p-6 w-full max-w-md`}>
+                    <h3 className={`text-lg font-bold mb-4 ${textClass}`}>➕ إضافة منتج جديد</h3>
+                    <div className="space-y-3">
+                      <input 
+                        type="text"
+                        placeholder="اسم المنتج"
+                        value={inventoryForm.name}
+                        onChange={e => setInventoryForm({ ...inventoryForm, name: e.target.value })}
+                        className={`w-full border p-3 rounded-lg ${inputClass}`}
+                      />
+                      <select 
+                        value={inventoryForm.category}
+                        onChange={e => setInventoryForm({ ...inventoryForm, category: e.target.value })}
+                        className={`w-full border p-3 rounded-lg ${inputClass}`}
+                      >
+                        <option value="رواتر">📡 رواتر</option>
+                        <option value="كبل">🔌 كبل</option>
+                        <option value="سويتش">🔀 سويتش</option>
+                        <option value="أجهزة شبكات">🌐 أجهزة شبكات</option>
+                        <option value="إكسسوارات">🔧 إكسسوارات</option>
+                      </select>
+                      <input 
+                        type="number"
+                        placeholder="الكمية"
+                        value={inventoryForm.quantity}
+                        onChange={e => setInventoryForm({ ...inventoryForm, quantity: parseInt(e.target.value) || 0 })}
+                        className={`w-full border p-3 rounded-lg ${inputClass}`}
+                      />
+                      <input 
+                        type="number"
+                        placeholder="الحد الأدنى للمخزون"
+                        value={inventoryForm.minStock}
+                        onChange={e => setInventoryForm({ ...inventoryForm, minStock: parseInt(e.target.value) || 5 })}
+                        className={`w-full border p-3 rounded-lg ${inputClass}`}
+                      />
+                      <input 
+                        type="number"
+                        placeholder="السعر (ل.س)"
+                        value={inventoryForm.price}
+                        onChange={e => setInventoryForm({ ...inventoryForm, price: parseInt(e.target.value) || 0 })}
+                        className={`w-full border p-3 rounded-lg ${inputClass}`}
+                      />
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <button 
+                        onClick={handleAddInventoryProduct}
+                        disabled={loadingInventory}
+                        className="flex-1 bg-green-600 text-white py-3 rounded-lg disabled:opacity-50"
+                      >
+                        {loadingInventory ? '...' : 'حفظ'}
+                      </button>
+                      <button 
+                        onClick={() => setShowInventoryForm(false)}
+                        className={`flex-1 py-3 rounded-lg ${darkMode ? 'bg-[#334155]' : 'bg-gray-200'}`}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
