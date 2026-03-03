@@ -2215,6 +2215,41 @@ export default function Home() {
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <button onClick={handleExportCSV} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">📥 تصدير</button>
+                    <label className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm cursor-pointer">
+                      📤 استيراد Excel
+                      <input 
+                        type="file" 
+                        accept=".xlsx,.xls" 
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('type', 'subscribers');
+                            try {
+                              const res = await fetch('/api/import', {
+                                method: 'POST',
+                                body: formData,
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                alert(`✅ ${data.message}\nنجاح: ${data.results.success}\nفشل: ${data.results.failed}`);
+                                loadSubscribers();
+                              } else {
+                                alert('❌ ' + data.error);
+                              }
+                            } catch (err) {
+                              alert('❌ حدث خطأ أثناء الاستيراد');
+                            }
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    <a href="/api/import?type=subscribers" className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                      📄 قالب
+                    </a>
                     <button 
                       onClick={() => { 
                         setShowSubscriberForm(true); 
@@ -2646,12 +2681,49 @@ export default function Home() {
                     راوتر • بقية العدة • أخرى
                   </p>
                 </div>
-                <button 
-                  onClick={() => setShowInventoryForm(true)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
-                >
-                  + إضافة منتج
-                </button>
+                <div className="flex gap-2">
+                  <label className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm cursor-pointer">
+                    📤 استيراد
+                    <input 
+                      type="file" 
+                      accept=".xlsx,.xls" 
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('type', 'inventory');
+                          try {
+                            const res = await fetch('/api/import', {
+                              method: 'POST',
+                              body: formData,
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                              alert(`✅ ${data.message}`);
+                              loadInventory();
+                            } else {
+                              alert('❌ ' + data.error);
+                            }
+                          } catch (err) {
+                            alert('❌ حدث خطأ');
+                          }
+                        }
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  <a href="/api/import?type=inventory" className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                    📄 قالب
+                  </a>
+                  <button 
+                    onClick={() => setShowInventoryForm(true)}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    + إضافة منتج
+                  </button>
+                </div>
               </div>
 
               {/* Stats */}
