@@ -11,11 +11,9 @@ const getHeaders = () => ({
 
 // التصنيفات الافتراضية
 const DEFAULT_CATEGORIES = [
-  { id: 1, name: 'رواتر', nameEn: 'Routers', icon: '📡' },
-  { id: 2, name: 'كبل', nameEn: 'Cables', icon: '🔌' },
-  { id: 3, name: 'سويتش', nameEn: 'Switches', icon: '🔀' },
-  { id: 4, name: 'أجهزة شبكات', nameEn: 'Network Devices', icon: '🌐' },
-  { id: 5, name: 'إكسسوارات', nameEn: 'Accessories', icon: '🔧' },
+  { id: 1, name: 'راوتر', nameEn: 'Router', icon: '📡' },
+  { id: 2, name: 'بقية العدة', nameEn: 'Equipment', icon: '🔧' },
+  { id: 3, name: 'أخرى', nameEn: 'Other', icon: '📦' },
 ];
 
 // GET - جلب المخزون

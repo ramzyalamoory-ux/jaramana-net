@@ -246,7 +246,7 @@ export default function Home() {
   const [inventory, setInventory] = useState<any>({ products: [], categories: [], transactions: [], stats: {} });
   const [inventoryCategory, setInventoryCategory] = useState<string>('all');
   const [showInventoryForm, setShowInventoryForm] = useState(false);
-  const [inventoryForm, setInventoryForm] = useState<any>({ name: '', category: 'رواتر', quantity: 0, minStock: 5, price: 0 });
+  const [inventoryForm, setInventoryForm] = useState<any>({ name: '', category: 'راوتر', quantity: 0, minStock: 5, price: 0 });
   const [loadingInventory, setLoadingInventory] = useState(false);
 
   // Settings
@@ -538,7 +538,7 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setShowInventoryForm(false);
-        setInventoryForm({ name: '', category: 'رواتر', quantity: 0, minStock: 5, price: 0 });
+        setInventoryForm({ name: '', category: 'راوتر', quantity: 0, minStock: 5, price: 0 });
         loadInventory();
       } else {
         alert('خطأ: ' + data.error);
@@ -2336,10 +2336,11 @@ export default function Home() {
                     <div>
                       <label className={`block text-xs mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>💵 المبلغ المستحق (ل.س)</label>
                       <input 
-                        type="number" 
+                        type="text" 
+                        inputMode="numeric"
                         placeholder="0" 
-                        value={subscriberForm.balance || 0} 
-                        onChange={e => setSubscriberForm({ ...subscriberForm, balance: Number(e.target.value) })} 
+                        value={subscriberForm.balance || ''} 
+                        onChange={e => setSubscriberForm({ ...subscriberForm, balance: Number(e.target.value.replace(/[^0-9]/g, '')) || 0 })} 
                         className={`w-full border p-2 rounded-lg ${inputClass}`} 
                       />
                     </div>
@@ -2642,7 +2643,7 @@ export default function Home() {
                 <div>
                   <h3 className={`text-lg font-bold ${textClass}`}>📦 إدارة المخزون</h3>
                   <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    رواتر • كبل • سويتش • أجهزة شبكات
+                    راوتر • بقية العدة • أخرى
                   </p>
                 </div>
                 <button 
@@ -2805,11 +2806,9 @@ export default function Home() {
                         onChange={e => setInventoryForm({ ...inventoryForm, category: e.target.value })}
                         className={`w-full border p-3 rounded-lg ${inputClass}`}
                       >
-                        <option value="رواتر">📡 رواتر</option>
-                        <option value="كبل">🔌 كبل</option>
-                        <option value="سويتش">🔀 سويتش</option>
-                        <option value="أجهزة شبكات">🌐 أجهزة شبكات</option>
-                        <option value="إكسسوارات">🔧 إكسسوارات</option>
+                        <option value="راوتر">📡 راوتر</option>
+                        <option value="بقية العدة">🔧 بقية العدة</option>
+                        <option value="أخرى">📦 أخرى</option>
                       </select>
                       <input 
                         type="number"
