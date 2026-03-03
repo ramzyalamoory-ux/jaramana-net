@@ -9,172 +9,174 @@ const getHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
-// التصنيفات الافتراضية - كل تصنيف هو منتج بحد ذاته
-const DEFAULT_CATEGORIES = [
-  { id: 1, name: 'راوتر', nameEn: 'Router', icon: '📡' },
-  { id: 2, name: 'سويتش', nameEn: 'Switch', icon: '🔀' },
-  { id: 3, name: 'بقية العدة', nameEn: 'Equipment', icon: '🔧' },
-  { id: 4, name: 'أخرى', nameEn: 'Other', icon: '📦' },
+// التصنيفات الجديدة
+const CATEGORIES = [
+  { name: 'راوتر', icon: '📡' },
+  { name: 'سويتش', icon: '🔀' },
+  { name: 'بقية العدة', icon: '🔧' },
+  { name: 'أخرى', icon: '📦' },
 ];
 
 // GET - جلب المخزون
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
+    // جلب المنتجات من جدول Product
+    const productsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/Product?select=*`,
+      { headers: getHeaders() }
+    );
+    let products = await productsRes.json();
+    if (!products || products.code) products = [];
 
-    // جلب المنتجات
-    let url = `${SUPABASE_URL}/rest/v1/Inventory?select=*&order=category,name`;
-    if (category) {
-      url += `&category=eq.${category}`;
-    }
+    // جلب التصنيفات
+    const categoriesRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/ProductCategory?select=*`,
+      { headers: getHeaders() }
+    );
+    let dbCategories = await categoriesRes.json();
+    if (!dbCategories || dbCategories.code) dbCategories = [];
 
-    const res = await fetch(url, { headers: getHeaders() });
-    let products = await res.json();
-
-    // إذا الجدول فارغ أو غير موجود، نرجع البيانات الافتراضية
-    if (!products || products.length === 0 || products.code) {
-      products = [];
-    }
-
-    // جلب حركات المخزون
+    // جلب الحركات
     const transactionsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/InventoryTransaction?select=*&order=date.desc&limit=50`,
+      `${SUPABASE_URL}/rest/v1/InventoryTransaction?select=*&order=createdAt.desc&limit=50`,
       { headers: getHeaders() }
     );
     let transactions = await transactionsRes.json();
-    if (!transactions || transactions.code) {
-      transactions = [];
-    }
+    if (!transactions || transactions.code) transactions = [];
 
-    // إحصائيات
+    // حساب الإحصائيات
     const stats = {
       totalProducts: products.length,
       totalStock: products.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
       totalValue: products.reduce((sum: number, p: any) => sum + ((p.quantity || 0) * (p.price || 0)), 0),
       lowStock: products.filter((p: any) => (p.quantity || 0) <= (p.minStock || 5)).length,
-      byCategory: DEFAULT_CATEGORIES.map(cat => ({
-        ...cat,
-        count: products.filter((p: any) => p.category === cat.name).length,
-        stock: products.filter((p: any) => p.category === cat.name)
-          .reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
-      })),
     };
 
     return NextResponse.json({
-      categories: DEFAULT_CATEGORIES,
-      products,
-      transactions,
+      categories: CATEGORIES.map((c, i) => ({
+        id: i + 1,
+        ...c,
+        count: products.filter((p: any) => p.category === c.name).length,
+        stock: products.filter((p: any) => p.category === c.name)
+          .reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
+      })),
+      products: products.map((p: any) => ({
+        ...p,
+        category: p.category || 'أخرى',
+      })),
+      transactions: transactions.map((t: any) => ({
+        ...t,
+        productName: t.product?.name || t.productName,
+        category: t.product?.category || t.category,
+      })),
       stats,
     });
   } catch (error) {
     console.error('Error fetching inventory:', error);
     return NextResponse.json({
-      categories: DEFAULT_CATEGORIES,
+      categories: CATEGORIES.map((c, i) => ({ id: i + 1, ...c, count: 0, stock: 0 })),
       products: [],
       transactions: [],
-      stats: { totalProducts: 0, totalStock: 0, totalValue: 0, lowStock: 0, byCategory: DEFAULT_CATEGORIES },
+      stats: { totalProducts: 0, totalStock: 0, totalValue: 0, lowStock: 0 },
     });
   }
 }
 
-// POST - إضافة/تحديث منتج
+// POST - إضافة/تحديث
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, data } = body;
 
-    // إضافة كمية لتصنيف (بدون اسم منتج)
+    // إضافة كمية
     if (action === 'add-product') {
-      // اسم المنتج = اسم التصنيف
-      const productName = data.category;
+      const { category, quantity } = data;
       
-      // التحقق من وجود المنتج مسبقاً
+      // البحث عن منتج موجود بنفس التصنيف
       const checkRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/Inventory?category=eq.${encodeURIComponent(data.category)}`,
+        `${SUPABASE_URL}/rest/v1/Product?category=eq.${encodeURIComponent(category)}`,
         { headers: getHeaders() }
       );
-      const existingProducts = await checkRes.json();
-      
-      if (existingProducts && existingProducts.length > 0) {
-        // تحديث الكمية الموجودة
-        const existing = existingProducts[0];
-        const newQuantity = (existing.quantity || 0) + (data.quantity || 0);
+      const existing = await checkRes.json();
+
+      if (existing && existing.length > 0) {
+        // تحديث الكمية
+        const product = existing[0];
+        const newQty = (product.quantity || 0) + (quantity || 0);
         
-        await fetch(`${SUPABASE_URL}/rest/v1/Inventory?id=eq.${existing.id}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/Product?id=eq.${product.id}`, {
           method: 'PATCH',
           headers: getHeaders(),
-          body: JSON.stringify({
-            quantity: newQuantity,
-            updatedAt: new Date().toISOString(),
-          }),
+          body: JSON.stringify({ quantity: newQty }),
         });
-        
-        // إضافة حركة مخزون
-        if (data.quantity > 0) {
-          await fetch(`${SUPABASE_URL}/rest/v1/InventoryTransaction`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({
-              productName,
-              category: data.category,
-              type: 'دخل',
-              quantity: data.quantity,
-              reason: 'إضافة للمخزون',
-              date: new Date().toISOString(),
-            }),
-          });
-        }
-        
-        return NextResponse.json({ success: true, product: { ...existing, quantity: newQuantity } });
-      }
-      
-      // إنشاء منتج جديد
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/Inventory`, {
-        method: 'POST',
-        headers: { ...getHeaders(), 'Prefer': 'return=representation' },
-        body: JSON.stringify({
-          name: productName,
-          category: data.category,
-          quantity: data.quantity || 0,
-          minStock: data.minStock || 0,
-          price: data.price || 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }),
-      });
 
-      const result = await res.json();
-      if (!res.ok) {
-        return NextResponse.json({ error: 'خطأ في إضافة المنتج', details: result }, { status: 400 });
-      }
-
-      // إضافة حركة مخزون
-      if (data.quantity > 0) {
+        // إضافة حركة
         await fetch(`${SUPABASE_URL}/rest/v1/InventoryTransaction`, {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify({
-            productName,
-            category: data.category,
+            productId: product.id,
             type: 'دخل',
-            quantity: data.quantity,
+            quantity: quantity,
+            reason: 'إضافة للمخزون',
+          }),
+        });
+
+        return NextResponse.json({ success: true });
+      }
+
+      // إنشاء منتج جديد - نحتاج categoryId
+      // أولاً نحضر categoryId من ProductCategory أو نستخدم 1 كافتراضي
+      const catRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/ProductCategory?select=id&limit=1`,
+        { headers: getHeaders() }
+      );
+      const catData = await catRes.json();
+      const categoryId = catData?.[0]?.id || 1;
+
+      const createRes = await fetch(`${SUPABASE_URL}/rest/v1/Product`, {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Prefer': 'return=representation' },
+        body: JSON.stringify({
+          name: category,
+          category: category,
+          categoryId: categoryId,
+          quantity: quantity || 0,
+          type: 'قطعة',
+          minStock: 0,
+          price: 0,
+        }),
+      });
+
+      const newProduct = await createRes.json();
+      if (!createRes.ok) {
+        return NextResponse.json({ error: 'خطأ في الإضافة', details: newProduct }, { status: 400 });
+      }
+
+      // إضافة حركة
+      if (newProduct?.[0]?.id) {
+        await fetch(`${SUPABASE_URL}/rest/v1/InventoryTransaction`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            productId: newProduct[0].id,
+            type: 'دخل',
+            quantity: quantity,
             reason: 'إضافة جديدة',
-            date: new Date().toISOString(),
           }),
         });
       }
 
-      return NextResponse.json({ success: true, product: result[0] });
+      return NextResponse.json({ success: true });
     }
 
-    // تحديث كمية
+    // تحديث كمية (دخل/خرج)
     if (action === 'update-stock') {
       const { id, quantity, type, reason, recipient } = data;
 
-      // جلب المنتج الحالي
+      // جلب المنتج
       const productRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/Inventory?id=eq.${id}&select=*`,
+        `${SUPABASE_URL}/rest/v1/Product?id=eq.${id}&select=*`,
         { headers: getHeaders() }
       );
       const products = await productRes.json();
@@ -183,43 +185,36 @@ export async function POST(request: NextRequest) {
       }
 
       const product = products[0];
-      const newQuantity = type === 'in' 
+      const newQty = type === 'in' 
         ? product.quantity + quantity 
         : Math.max(0, product.quantity - quantity);
 
       // تحديث الكمية
-      await fetch(`${SUPABASE_URL}/rest/v1/Inventory?id=eq.${id}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/Product?id=eq.${id}`, {
         method: 'PATCH',
         headers: getHeaders(),
-        body: JSON.stringify({ 
-          quantity: newQuantity,
-          updatedAt: new Date().toISOString() 
-        }),
+        body: JSON.stringify({ quantity: newQty }),
       });
 
-      // إضافة حركة (دخل/خرج)
-      const moveType = type === 'in' ? 'دخل' : 'خرج';
+      // إضافة حركة
       await fetch(`${SUPABASE_URL}/rest/v1/InventoryTransaction`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
-          productName: product.name,
-          category: product.category,
-          type: moveType,
-          quantity,
+          productId: id,
+          type: type === 'in' ? 'دخل' : 'خرج',
+          quantity: quantity,
           reason: reason || null,
           recipient: recipient || null,
-          date: new Date().toISOString(),
         }),
       });
 
-      return NextResponse.json({ success: true, newQuantity });
+      return NextResponse.json({ success: true, newQuantity: newQty });
     }
 
     // حذف منتج
     if (action === 'delete-product') {
-      const { id } = data;
-      await fetch(`${SUPABASE_URL}/rest/v1/Inventory?id=eq.${id}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/Product?id=eq.${data.id}`, {
         method: 'DELETE',
         headers: getHeaders(),
       });
