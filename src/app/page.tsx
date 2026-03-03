@@ -140,18 +140,6 @@ interface Settings {
   supportPhone2: string;
 }
 
-// Payment Record
-interface PaymentRecord {
-  id: number;
-  subscriberId: number;
-  subscriberName: string;
-  amount: number;
-  paymentDate: string;
-  paymentMethod: string;
-  notes?: string;
-  createdAt: string;
-}
-
 // MikroTik Config
 interface MikroTikConfig {
   id?: number;
@@ -276,11 +264,6 @@ export default function Home() {
   const [sendingNotification, setSendingNotification] = useState(false);
   const [targetSubscriber, setTargetSubscriber] = useState<string>('all'); // 'all' or phone number
   const [searchSubscribers, setSearchSubscribers] = useState('');
-
-  // Payments
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [paymentForm, setPaymentForm] = useState({ subscriberId: 0, amount: 0, method: 'cash', notes: '' });
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
 
   // MikroTik
   const [mikrotikConfig, setMikrotikConfig] = useState<MikroTikConfig>({
@@ -2001,7 +1984,6 @@ export default function Home() {
               { id: 'inventory', label: 'المخزون', icon: '📦' },
               { id: 'tickets', label: 'الشكاوى', icon: '🎫' },
               { id: 'notifications', label: 'الإشعارات', icon: '🔔' },
-              { id: 'payments', label: 'الدفعات', icon: '💳' },
               { id: 'reports', label: 'التقارير', icon: '📊' },
               { id: 'monitor', label: 'المراقبة', icon: '🔧' },
               { id: 'whatsapp', label: 'واتساب', icon: '💬' },
@@ -3085,128 +3067,6 @@ export default function Home() {
                   >
                     🔄 تحديث
                   </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Payments Tab */}
-          {activeTab === 'payments' && (
-            <div className="space-y-4">
-              <div className={`${cardClass} rounded-xl p-6`}>
-                <h3 className={`text-lg font-bold mb-4 ${textClass}`}>💳 تسجيل دفعة جديدة</h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <select 
-                    value={paymentForm.subscriberId || ''}
-                    onChange={e => setPaymentForm({ ...paymentForm, subscriberId: Number(e.target.value) })}
-                    className={`border p-3 rounded-lg ${inputClass}`}
-                  >
-                    <option value="">اختر المشترك</option>
-                    {subscribers.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} - {s.phone}</option>
-                    ))}
-                  </select>
-                  <input 
-                    type="number" 
-                    placeholder="المبلغ (ل.س)"
-                    value={paymentForm.amount || ''}
-                    onChange={e => setPaymentForm({ ...paymentForm, amount: Number(e.target.value) })}
-                    className={`border p-3 rounded-lg ${inputClass}`}
-                  />
-                  <select 
-                    value={paymentForm.method}
-                    onChange={e => setPaymentForm({ ...paymentForm, method: e.target.value })}
-                    className={`border p-3 rounded-lg ${inputClass}`}
-                  >
-                    <option value="cash">💵 نقدي</option>
-                    <option value="bank">🏦 تحويل بنكي</option>
-                    <option value="mobile">📱 دفع إلكتروني</option>
-                  </select>
-                  <button 
-                    onClick={async () => {
-                      if (!paymentForm.subscriberId || !paymentForm.amount) {
-                        alert('اختر المشترك والمبلغ');
-                        return;
-                      }
-                      try {
-                        // إضافة الدفعة في Supabase
-                        const subscriber = subscribers.find(s => s.id === paymentForm.subscriberId);
-                        const res = await fetch(`${SUPABASE_URL}/rest/v1/Payment`, {
-                          method: 'POST',
-                          headers: getHeaders(),
-                          body: JSON.stringify({
-                            subscriberId: paymentForm.subscriberId,
-                            subscriberName: subscriber?.name,
-                            amount: paymentForm.amount,
-                            method: paymentForm.method,
-                            notes: paymentForm.notes,
-                            createdAt: new Date().toISOString()
-                          })
-                        });
-                        if (res.ok) {
-                          // تحديث رصيد المشترك
-                          const newBalance = Math.max(0, (subscriber?.balance || 0) - paymentForm.amount);
-                          await fetch(`${SUPABASE_URL}/rest/v1/Subscriber?id=eq.${paymentForm.subscriberId}`, {
-                            method: 'PATCH',
-                            headers: getHeaders(),
-                            body: JSON.stringify({ balance: newBalance })
-                          });
-                          alert('✅ تم تسجيل الدفعة!');
-                          setPaymentForm({ subscriberId: 0, amount: 0, method: 'cash', notes: '' });
-                          loadSubscribers();
-                        }
-                      } catch (e) {
-                        alert('❌ حدث خطأ');
-                      }
-                    }}
-                    className="bg-green-600 text-white py-3 rounded-lg font-bold"
-                  >
-                    ✓ تسجيل
-                  </button>
-                </div>
-              </div>
-              
-              {/* سجل الدفعات */}
-              <div className={`${cardClass} rounded-xl p-6`}>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className={`text-lg font-bold ${textClass}`}>📋 سجل الدفعات الأخيرة</h3>
-                  <button 
-                    onClick={async () => {
-                      const res = await fetch(`${SUPABASE_URL}/rest/v1/Payment?select=*&order=createdAt.desc&limit=50`, {
-                        headers: getHeaders()
-                      });
-                      const data = await res.json();
-                      setPayments(data || []);
-                    }}
-                    className={`${darkMode ? 'bg-[#334155]' : 'bg-gray-100'} px-3 py-1 rounded text-sm`}
-                  >
-                    🔄 تحديث
-                  </button>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className={darkMode ? 'bg-[#334155]' : 'bg-gray-100'}>
-                        <th className="p-2 text-right">المشترك</th>
-                        <th className="p-2 text-right">المبلغ</th>
-                        <th className="p-2 text-right">الطريقة</th>
-                        <th className="p-2 text-right">التاريخ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {payments.slice(0, 10).map((p, i) => (
-                        <tr key={i} className="border-b border-gray-700">
-                          <td className="p-2">{p.subscriberName}</td>
-                          <td className="p-2 text-green-400">{p.amount?.toLocaleString()} ل.س</td>
-                          <td className="p-2">{p.method === 'cash' ? '💵 نقدي' : p.method === 'bank' ? '🏦 بنكي' : '📱 إلكتروني'}</td>
-                          <td className="p-2">{new Date(p.createdAt).toLocaleDateString('ar')}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {payments.length === 0 && (
-                    <p className={`text-center py-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>لا توجد دفعات مسجلة</p>
-                  )}
                 </div>
               </div>
             </div>
