@@ -69,10 +69,7 @@ export default function RootLayout({
         {/* Fonts */}
         <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
         
-        {/* OneSignal SDK */}
-        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-        
-        {/* PWA & OneSignal Init */}
+        {/* PWA Init */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -82,7 +79,7 @@ export default function RootLayout({
                   navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
                       console.log('SW registered successfully:', registration.scope);
-                      
+
                       // فحص التحديثات
                       registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
@@ -98,43 +95,6 @@ export default function RootLayout({
                     });
                 });
               }
-              
-              // تهيئة OneSignal للإشعارات
-              window.OneSignalDeferred = window.OneSignalDeferred || [];
-              window.OneSignalDeferred.push(async function(OneSignal) {
-                await OneSignal.init({
-                  appId: "06d9e1b5-7db3-4a75-93a3-e761013786f1",
-                  notifyButton: {
-                    enable: true,
-                    showCredit: false
-                  },
-                  promptOptions: {
-                    slidedown: {
-                      prompts: [
-                        {
-                          type: "push",
-                          autoPromptTitle: "السماح بالإشعارات",
-                          autoPromptAcceptButton: "سماح",
-                          autoPromptCancelButton: "لا شكراً"
-                        }
-                      ]
-                    }
-                  },
-                  welcomeNotification: {
-                    title: "جرمانا نت",
-                    message: "شكراً لاشتراكك في الإشعارات!"
-                  }
-                });
-                
-                // حفظ معرف المشترك عند التسجيل
-                OneSignal.User.pushSubscription.addEventListener('change', function(event) {
-                  if (event.current.token) {
-                    console.log('OneSignal Player ID:', event.current.token);
-                    // حفظ في localStorage للاستخدام لاحقاً
-                    localStorage.setItem('onesignal_player_id', event.current.token);
-                  }
-                });
-              });
             `,
           }}
         />
