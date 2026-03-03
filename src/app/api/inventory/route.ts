@@ -9,7 +9,7 @@ const getHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
-// التصنيفات الجديدة
+// التصنيفات - كل تصنيف هو منتج (name = category)
 const CATEGORIES = [
   { name: 'راوتر', icon: '📡' },
   { name: 'سويتش', icon: '🔀' },
@@ -20,21 +20,13 @@ const CATEGORIES = [
 // GET - جلب المخزون
 export async function GET(request: NextRequest) {
   try {
-    // جلب المنتجات من جدول Product
+    // جلب المنتجات
     const productsRes = await fetch(
       `${SUPABASE_URL}/rest/v1/Product?select=*`,
       { headers: getHeaders() }
     );
     let products = await productsRes.json();
     if (!products || products.code) products = [];
-
-    // جلب التصنيفات
-    const categoriesRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/ProductCategory?select=*`,
-      { headers: getHeaders() }
-    );
-    let dbCategories = await categoriesRes.json();
-    if (!dbCategories || dbCategories.code) dbCategories = [];
 
     // جلب الحركات
     const transactionsRes = await fetch(
@@ -44,30 +36,35 @@ export async function GET(request: NextRequest) {
     let transactions = await transactionsRes.json();
     if (!transactions || transactions.code) transactions = [];
 
+    // تصفية المنتجات التي هي تصنيفات فقط
+    const categoryNames = CATEGORIES.map(c => c.name);
+    const inventoryProducts = products.filter((p: any) => 
+      categoryNames.includes(p.name)
+    );
+
     // حساب الإحصائيات
     const stats = {
-      totalProducts: products.length,
-      totalStock: products.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
-      totalValue: products.reduce((sum: number, p: any) => sum + ((p.quantity || 0) * (p.price || 0)), 0),
-      lowStock: products.filter((p: any) => (p.quantity || 0) <= (p.minStock || 5)).length,
+      totalProducts: inventoryProducts.length,
+      totalStock: inventoryProducts.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
+      totalValue: inventoryProducts.reduce((sum: number, p: any) => sum + ((p.quantity || 0) * (p.price || 0)), 0),
+      lowStock: inventoryProducts.filter((p: any) => (p.quantity || 0) <= (p.minStock || 5)).length,
     };
 
     return NextResponse.json({
       categories: CATEGORIES.map((c, i) => ({
         id: i + 1,
         ...c,
-        count: products.filter((p: any) => p.category === c.name).length,
-        stock: products.filter((p: any) => p.category === c.name)
-          .reduce((sum: number, p: any) => sum + (p.quantity || 0), 0),
+        count: inventoryProducts.filter((p: any) => p.name === c.name).length,
+        stock: inventoryProducts.find((p: any) => p.name === c.name)?.quantity || 0,
       })),
-      products: products.map((p: any) => ({
+      products: inventoryProducts.map((p: any) => ({
         ...p,
-        category: p.category || 'أخرى',
+        category: p.name, // التصنيف = اسم المنتج
       })),
       transactions: transactions.map((t: any) => ({
         ...t,
         productName: t.product?.name || t.productName,
-        category: t.product?.category || t.category,
+        category: t.product?.name || t.category,
       })),
       stats,
     });
@@ -88,13 +85,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, data } = body;
 
-    // إضافة كمية
+    // إضافة كمية لتصنيف
     if (action === 'add-product') {
       const { category, quantity } = data;
       
-      // البحث عن منتج موجود بنفس التصنيف
+      // البحث عن منتج موجود بنفس الاسم (التصنيف)
       const checkRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/Product?category=eq.${encodeURIComponent(category)}`,
+        `${SUPABASE_URL}/rest/v1/Product?name=eq.${encodeURIComponent(category)}`,
         { headers: getHeaders() }
       );
       const existing = await checkRes.json();
@@ -125,21 +122,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
-      // إنشاء منتج جديد - نحتاج categoryId
-      // أولاً نحضر categoryId من ProductCategory أو نستخدم 1 كافتراضي
+      // إنشاء منتج جديد - الاسم = التصنيف
       const catRes = await fetch(
         `${SUPABASE_URL}/rest/v1/ProductCategory?select=id&limit=1`,
         { headers: getHeaders() }
       );
       const catData = await catRes.json();
-      const categoryId = catData?.[0]?.id || 1;
+      const categoryId = catData?.[0]?.id || 2;
 
       const createRes = await fetch(`${SUPABASE_URL}/rest/v1/Product`, {
         method: 'POST',
         headers: { ...getHeaders(), 'Prefer': 'return=representation' },
         body: JSON.stringify({
-          name: category,
-          category: category,
+          name: category, // الاسم = التصنيف
           categoryId: categoryId,
           quantity: quantity || 0,
           type: 'قطعة',
