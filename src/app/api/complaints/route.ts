@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // نحفظ في جدول Ticket (لأنه موجود)
+    const now = new Date().toISOString();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/Ticket`, {
       method: 'POST',
       headers: {
@@ -58,9 +59,10 @@ export async function POST(request: NextRequest) {
         name: title,
         phone: phone || null,
         subject: title,
-        description: details,
+        message: details,
         status: 'pending',
-        createdAt: new Date().toISOString(),
+        priority: 'normal',
+        updatedAt: now,
       }),
     });
 
@@ -95,7 +97,10 @@ export async function PUT(request: NextRequest) {
         'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ 
+        status,
+        updatedAt: new Date().toISOString() 
+      }),
     });
 
     if (!res.ok) {
