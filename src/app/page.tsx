@@ -814,7 +814,31 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.length === 1) {
-        setSearchResult({ subscriber: data[0], totalDue: data[0].balance || 0 });
+        const subscriber = data[0];
+        
+        // حساب المبلغ المستحق
+        let totalDue = subscriber.balance || 0;
+        
+        // إذا منتهي الصلاحية، نضيف رسوم الاشتراك
+        if (subscriber.paymentStatus === 'expired' || subscriber.status === 'expired') {
+          const monthlyFee = subscriber.monthlyFee || 0;
+          // نحسب عدد الأشهر المتأخرة من تاريخ الانتهاء
+          if (subscriber.expiryDate) {
+            const expiryDate = new Date(subscriber.expiryDate);
+            const today = new Date();
+            const daysDiff = Math.floor((today.getTime() - expiryDate.getTime()) / (1000 * 60 * 60 * 24));
+            const monthsLate = Math.ceil(daysDiff / 30);
+            if (monthsLate > 0) {
+              totalDue += monthlyFee * monthsLate;
+            } else {
+              totalDue += monthlyFee; // شهر واحد على الأقل
+            }
+          } else {
+            totalDue += monthlyFee;
+          }
+        }
+        
+        setSearchResult({ subscriber, totalDue });
         
         // ربط رقم الهاتف مع OneSignal للإشعارات المستقبلية
         const subscriberPhone = data[0].phone;
