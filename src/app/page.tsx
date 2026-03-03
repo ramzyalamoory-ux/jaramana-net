@@ -246,7 +246,7 @@ export default function Home() {
   const [inventory, setInventory] = useState<any>({ products: [], categories: [], transactions: [], stats: {} });
   const [inventoryCategory, setInventoryCategory] = useState<string>('all');
   const [showInventoryForm, setShowInventoryForm] = useState(false);
-  const [inventoryForm, setInventoryForm] = useState<any>({ name: '', category: 'راوتر', quantity: 0, minStock: 5, price: 0 });
+  const [inventoryForm, setInventoryForm] = useState<any>({ category: 'راوتر', quantity: 0 });
   const [loadingInventory, setLoadingInventory] = useState(false);
 
   // Settings
@@ -527,7 +527,7 @@ export default function Home() {
 
   // Add Inventory Product
   const handleAddInventoryProduct = async () => {
-    if (!inventoryForm.name) return;
+    if (!inventoryForm.category || !inventoryForm.quantity) return;
     setLoadingInventory(true);
     try {
       const res = await fetch('/api/inventory', {
@@ -538,7 +538,7 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setShowInventoryForm(false);
-        setInventoryForm({ name: '', category: 'راوتر', quantity: 0, minStock: 5, price: 0 });
+        setInventoryForm({ category: 'راوتر', quantity: 0 });
         loadInventory();
       } else {
         alert('خطأ: ' + data.error);
@@ -2681,53 +2681,15 @@ export default function Home() {
                 <div>
                   <h3 className={`text-lg font-bold ${textClass}`}>📦 إدارة المخزون</h3>
                   <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    راوتر • بقية العدة • أخرى
+                    راوتر • سويتش • بقية العدة • أخرى
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <label className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm cursor-pointer">
-                    📤 استيراد
-                    <input 
-                      type="file" 
-                      accept=".xlsx,.xls" 
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          formData.append('type', 'inventory');
-                          try {
-                            setLoadingInventory(true);
-                            const res = await fetch('/api/import', {
-                              method: 'POST',
-                              body: formData,
-                            });
-                            const data = await res.json();
-                            if (data.success) {
-                              alert(`✅ ${data.message}\nنجاح: ${data.results?.success || 0}`);
-                              loadInventory();
-                            } else {
-                              alert('❌ ' + (data.error || 'حدث خطأ') + '\n' + (data.details || ''));
-                            }
-                          } catch (err: any) {
-                            alert('❌ حدث خطأ: ' + (err.message || ''));
-                          } finally {
-                            setLoadingInventory(false);
-                          }
-                        }
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                  <a href="/api/import?type=inventory" className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-                    📄 قالب
-                  </a>
                   <button 
                     onClick={() => setShowInventoryForm(true)}
                     className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
                   >
-                    + إضافة منتج
+                    + إضافة كمية
                   </button>
                 </div>
               </div>
@@ -2778,11 +2740,9 @@ export default function Home() {
                 <table className="w-full">
                   <thead className={darkMode ? 'bg-[#334155]' : 'bg-gray-50'}>
                     <tr>
-                      <th className={`text-right p-3 ${textClass}`}>المنتج</th>
-                      <th className={`text-right p-3 ${textClass}`}>التصنيف</th>
-                      <th className={`text-right p-3 ${textClass}`}>الكمية</th>
-                      <th className={`text-right p-3 ${textClass}`}>السعر</th>
-                      <th className={`text-right p-3 ${textClass}`}>إجراءات</th>
+                      <th className={`text-right p-3 ${textClass}`}>الصنف</th>
+                      <th className={`text-center p-3 ${textClass}`}>العدد</th>
+                      <th className={`text-center p-3 ${textClass}`}>حركة</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2791,44 +2751,31 @@ export default function Home() {
                       .map((product: any) => (
                       <tr key={product.id} className={`border-t ${darkMode ? 'border-[#334155]' : 'border-gray-200'}`}>
                         <td className={`p-3 ${textClass}`}>
-                          <p className="font-medium">{product.name}</p>
-                          {product.quantity <= product.minStock && (
-                            <span className="text-xs text-yellow-400">⚠️ مخزون منخفض</span>
-                          )}
+                          <p className="font-medium text-lg">{product.category}</p>
                         </td>
-                        <td className={`p-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{product.category}</td>
-                        <td className={`p-3 ${product.quantity <= product.minStock ? 'text-yellow-400 font-bold' : textClass}`}>
-                          {product.quantity}
-                        </td>
-                        <td className={`p-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {(product.price || 0).toLocaleString()} ل.س
+                        <td className={`p-3 text-center`}>
+                          <span className="text-2xl font-bold text-indigo-400">{product.quantity}</span>
                         </td>
                         <td className="p-3">
-                          <div className="flex gap-1">
+                          <div className="flex gap-2 justify-center">
                             <button 
                               onClick={() => {
-                                const qty = prompt('كمية الإدخال:');
-                                if (qty) handleUpdateStock(product.id, 'in', parseInt(qty), 'إدخال');
+                                const qty = prompt('كمية الدخل:');
+                                if (qty) handleUpdateStock(product.id, 'in', parseInt(qty), 'دخل');
                               }}
-                              className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded"
+                              className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg"
                             >
-                              ➕ إدخال
+                              📥 دخل
                             </button>
                             <button 
                               onClick={() => {
-                                const qty = prompt('كمية الإخراج:');
+                                const qty = prompt('كمية الخرج:');
                                 const recipient = prompt('اسم المستلم:');
-                                if (qty) handleUpdateStock(product.id, 'out', parseInt(qty), 'إخراج', recipient || undefined);
+                                if (qty) handleUpdateStock(product.id, 'out', parseInt(qty), 'خرج', recipient || undefined);
                               }}
-                              className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded"
+                              className="text-sm bg-orange-600 text-white px-4 py-2 rounded-lg"
                             >
-                              ➖ إخراج
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteProduct(product.id)}
-                              className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded"
-                            >
-                              🗑️
+                              📤 خرج
                             </button>
                           </div>
                         </td>
@@ -2836,8 +2783,8 @@ export default function Home() {
                     ))}
                     {(inventory.products || []).length === 0 && (
                       <tr>
-                        <td colSpan={5} className={`p-8 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          لا توجد منتجات - أضف منتج جديد
+                        <td colSpan={3} className={`p-8 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          لا توجد أصناف - أضف كمية جديدة
                         </td>
                       </tr>
                     )}
@@ -2851,76 +2798,70 @@ export default function Home() {
                   <h4 className={`font-bold mb-3 ${textClass}`}>📋 آخر الحركات</h4>
                   <div className="space-y-2">
                     {inventory.transactions.slice(0, 10).map((tx: any, i: number) => (
-                      <div key={i} className={`flex justify-between items-center p-2 rounded ${darkMode ? 'bg-[#334155]' : 'bg-gray-50'}`}>
-                        <div>
-                          <span className={tx.type === 'in' ? 'text-green-400' : 'text-orange-400'}>
-                            {tx.type === 'in' ? '📥 إدخال' : '📤 إخراج'}
+                      <div key={i} className={`flex justify-between items-center p-3 rounded ${darkMode ? 'bg-[#334155]' : 'bg-gray-50'}`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-xl ${tx.type === 'دخل' || tx.type === 'in' ? 'text-green-400' : 'text-orange-400'}`}>
+                            {tx.type === 'دخل' || tx.type === 'in' ? '📥' : '📤'}
                           </span>
-                          <span className={`mr-2 ${textClass}`}>{tx.productName || tx.name}</span>
-                          {tx.recipient && <span className="text-xs text-gray-400 mr-2">({tx.recipient})</span>}
+                          <div>
+                            <span className={`font-bold ${textClass}`}>{tx.type === 'دخل' || tx.type === 'in' ? 'دخل' : 'خرج'}</span>
+                            <span className={`mx-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{tx.productName || tx.category}</span>
+                            {tx.recipient && <span className="text-xs text-cyan-400">→ {tx.recipient}</span>}
+                          </div>
                         </div>
-                        <span className={textClass}>{tx.quantity}</span>
+                        <span className={`text-xl font-bold ${tx.type === 'دخل' || tx.type === 'in' ? 'text-green-400' : 'text-orange-400'}`}>
+                          {tx.type === 'دخل' || tx.type === 'in' ? '+' : '-'}{tx.quantity}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Add Product Form */}
+              {/* Add Quantity Form */}
               {showInventoryForm && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                   <div className={`${cardClass} rounded-xl p-6 w-full max-w-md`}>
-                    <h3 className={`text-lg font-bold mb-4 ${textClass}`}>➕ إضافة منتج جديد</h3>
-                    <div className="space-y-3">
-                      <input 
-                        type="text"
-                        placeholder="اسم المنتج"
-                        value={inventoryForm.name}
-                        onChange={e => setInventoryForm({ ...inventoryForm, name: e.target.value })}
-                        className={`w-full border p-3 rounded-lg ${inputClass}`}
-                      />
-                      <select 
-                        value={inventoryForm.category}
-                        onChange={e => setInventoryForm({ ...inventoryForm, category: e.target.value })}
-                        className={`w-full border p-3 rounded-lg ${inputClass}`}
-                      >
-                        <option value="راوتر">📡 راوتر</option>
-                        <option value="بقية العدة">🔧 بقية العدة</option>
-                        <option value="أخرى">📦 أخرى</option>
-                      </select>
-                      <input 
-                        type="number"
-                        placeholder="الكمية"
-                        value={inventoryForm.quantity}
-                        onChange={e => setInventoryForm({ ...inventoryForm, quantity: parseInt(e.target.value) || 0 })}
-                        className={`w-full border p-3 rounded-lg ${inputClass}`}
-                      />
-                      <input 
-                        type="number"
-                        placeholder="الحد الأدنى للمخزون"
-                        value={inventoryForm.minStock}
-                        onChange={e => setInventoryForm({ ...inventoryForm, minStock: parseInt(e.target.value) || 5 })}
-                        className={`w-full border p-3 rounded-lg ${inputClass}`}
-                      />
-                      <input 
-                        type="number"
-                        placeholder="السعر (ل.س)"
-                        value={inventoryForm.price}
-                        onChange={e => setInventoryForm({ ...inventoryForm, price: parseInt(e.target.value) || 0 })}
-                        className={`w-full border p-3 rounded-lg ${inputClass}`}
-                      />
+                    <h3 className={`text-lg font-bold mb-4 ${textClass}`}>➕ إضافة كمية للمخزون</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>الصنف:</label>
+                        <select 
+                          value={inventoryForm.category}
+                          onChange={e => setInventoryForm({ ...inventoryForm, category: e.target.value })}
+                          className={`w-full border p-4 rounded-lg text-lg ${inputClass}`}
+                        >
+                          <option value="راوتر">📡 راوتر</option>
+                          <option value="سويتش">🔀 سويتش</option>
+                          <option value="بقية العدة">🔧 بقية العدة</option>
+                          <option value="أخرى">📦 أخرى</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>العدد:</label>
+                        <input 
+                          type="number"
+                          placeholder="أدخل العدد"
+                          value={inventoryForm.quantity || ''}
+                          onChange={e => setInventoryForm({ ...inventoryForm, quantity: parseInt(e.target.value) || 0 })}
+                          className={`w-full border p-4 rounded-lg text-lg text-center ${inputClass}`}
+                        />
+                      </div>
                     </div>
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex gap-2 mt-6">
                       <button 
                         onClick={handleAddInventoryProduct}
-                        disabled={loadingInventory}
-                        className="flex-1 bg-green-600 text-white py-3 rounded-lg disabled:opacity-50"
+                        disabled={loadingInventory || !inventoryForm.quantity}
+                        className="flex-1 bg-green-600 text-white py-4 rounded-lg text-lg disabled:opacity-50"
                       >
-                        {loadingInventory ? '...' : 'حفظ'}
+                        {loadingInventory ? '...' : '✓ إضافة'}
                       </button>
                       <button 
-                        onClick={() => setShowInventoryForm(false)}
-                        className={`flex-1 py-3 rounded-lg ${darkMode ? 'bg-[#334155]' : 'bg-gray-200'}`}
+                        onClick={() => {
+                          setShowInventoryForm(false);
+                          setInventoryForm({ category: 'راوتر', quantity: 0 });
+                        }}
+                        className={`flex-1 py-4 rounded-lg text-lg ${darkMode ? 'bg-[#334155]' : 'bg-gray-200'}`}
                       >
                         إلغاء
                       </button>

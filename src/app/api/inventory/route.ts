@@ -9,11 +9,12 @@ const getHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
-// التصنيفات الافتراضية
+// التصنيفات الافتراضية - كل تصنيف هو منتج بحد ذاته
 const DEFAULT_CATEGORIES = [
   { id: 1, name: 'راوتر', nameEn: 'Router', icon: '📡' },
-  { id: 2, name: 'بقية العدة', nameEn: 'Equipment', icon: '🔧' },
-  { id: 3, name: 'أخرى', nameEn: 'Other', icon: '📦' },
+  { id: 2, name: 'سويتش', nameEn: 'Switch', icon: '🔀' },
+  { id: 3, name: 'بقية العدة', nameEn: 'Equipment', icon: '🔧' },
+  { id: 4, name: 'أخرى', nameEn: 'Other', icon: '📦' },
 ];
 
 // GET - جلب المخزون
@@ -83,20 +84,61 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, data } = body;
 
-    // إضافة منتج جديد
+    // إضافة كمية لتصنيف (بدون اسم منتج)
     if (action === 'add-product') {
+      // اسم المنتج = اسم التصنيف
+      const productName = data.category;
+      
+      // التحقق من وجود المنتج مسبقاً
+      const checkRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/Inventory?category=eq.${encodeURIComponent(data.category)}`,
+        { headers: getHeaders() }
+      );
+      const existingProducts = await checkRes.json();
+      
+      if (existingProducts && existingProducts.length > 0) {
+        // تحديث الكمية الموجودة
+        const existing = existingProducts[0];
+        const newQuantity = (existing.quantity || 0) + (data.quantity || 0);
+        
+        await fetch(`${SUPABASE_URL}/rest/v1/Inventory?id=eq.${existing.id}`, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            quantity: newQuantity,
+            updatedAt: new Date().toISOString(),
+          }),
+        });
+        
+        // إضافة حركة مخزون
+        if (data.quantity > 0) {
+          await fetch(`${SUPABASE_URL}/rest/v1/InventoryTransaction`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+              productName,
+              category: data.category,
+              type: 'دخل',
+              quantity: data.quantity,
+              reason: 'إضافة للمخزون',
+              date: new Date().toISOString(),
+            }),
+          });
+        }
+        
+        return NextResponse.json({ success: true, product: { ...existing, quantity: newQuantity } });
+      }
+      
+      // إنشاء منتج جديد
       const res = await fetch(`${SUPABASE_URL}/rest/v1/Inventory`, {
         method: 'POST',
         headers: { ...getHeaders(), 'Prefer': 'return=representation' },
         body: JSON.stringify({
-          name: data.name,
+          name: productName,
           category: data.category,
           quantity: data.quantity || 0,
-          minStock: data.minStock || 5,
+          minStock: data.minStock || 0,
           price: data.price || 0,
-          serialNumber: data.serialNumber || null,
-          location: data.location || null,
-          notes: data.notes || null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }),
@@ -113,9 +155,9 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: getHeaders(),
           body: JSON.stringify({
-            productName: data.name,
+            productName,
             category: data.category,
-            type: 'in',
+            type: 'دخل',
             quantity: data.quantity,
             reason: 'إضافة جديدة',
             date: new Date().toISOString(),
@@ -155,14 +197,15 @@ export async function POST(request: NextRequest) {
         }),
       });
 
-      // إضافة حركة
+      // إضافة حركة (دخل/خرج)
+      const moveType = type === 'in' ? 'دخل' : 'خرج';
       await fetch(`${SUPABASE_URL}/rest/v1/InventoryTransaction`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
           productName: product.name,
           category: product.category,
-          type,
+          type: moveType,
           quantity,
           reason: reason || null,
           recipient: recipient || null,
