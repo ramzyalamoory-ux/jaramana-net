@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The image features a stylized, flat - design logo set against a dark blue background. At the top, there is a circular scene depicting a space - like environment. Within this circle, a satellite dish (light gray with a darker gray base and a black center) is positioned on the left. To the right of the satellite dish, a simplified Earth (with blue oceans and green landmasses) is shown, and white curved lines emanate from the Earth, suggesting the transmission of signals. The space background is dark blue, dotted with small white stars of varying sizes, adding to the celestial theme.\n\nBelow the circular graphic, there is text. The upper line of text is in Arabic: “جارمانا نت”. Directly beneath the Arabic text, in a clean, sans - serif font, the English text “JaraMana Net” is displayed. To the left of the Arabic text, there is a small Wi - Fi signal icon, which is a series of white curved lines, reinforcing the theme of connectivity.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1772053363,
+  "id": "2026022605024127d73b6c0644427e",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "2026022605024127d73b6c0644427e",
+  "usage": {
+    "completion_tokens": 209,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1549,
+    "prompt_tokens_details": {
+      "cached_tokens": 20
+    },
+    "total_tokens": 1758
+  }
+}

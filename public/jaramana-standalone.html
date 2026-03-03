@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>جرمانا نت - JaraMana Net</title>
+    <link rel="manifest" href="data:application/json,{%22name%22:%22جرمانا نت%22,%22short_name%22:%22جرمانا نت%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%230f172a%22,%22theme_color%22:%22%230891b2%22}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        .header {
+            background: linear-gradient(to right, #0f172a, #1e293b, #0f172a);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .logo-section { display: flex; align-items: center; gap: 15px; }
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+        .company-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(to left, #60a5fa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .company-slogan { color: #94a3b8; font-size: 0.8rem; }
+        .main { padding: 20px; max-width: 800px; margin: 0 auto; }
+        
+        /* Cards */
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 16px;
+            border: 1px solid #334155;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .card-header {
+            background: linear-gradient(to right, #3b82f6, #06b6d4);
+            padding: 20px;
+            text-align: center;
+        }
+        .card-title { font-size: 1.5rem; font-weight: bold; color: white; }
+        .card-desc { color: rgba(255,255,255,0.8); margin-top: 5px; }
+        .card-body { padding: 20px; }
+        
+        /* Inputs */
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        input, select, textarea {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            background: #1e293b;
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        input::placeholder { color: #64748b; }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .btn-secondary { background: #334155; color: white; border: 1px solid #475569; }
+        .btn-sm { padding: 8px 15px; font-size: 0.9rem; }
+        
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .badge-success { background: #10b981; color: white; }
+        .badge-danger { background: #ef4444; color: white; }
+        
+        /* Table */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #334155;
+        }
+        th { background: #1e293b; color: #94a3b8; font-weight: 600; }
+        tr:hover { background: rgba(51, 65, 85, 0.5); }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab {
+            padding: 12px 20px;
+            background: #334155;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: white;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal {
+            background: #1e293b;
+            border-radius: 16px;
+            border: 1px solid #334155;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title { font-size: 1.25rem; font-weight: bold; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid #334155; display: flex; gap: 10px; justify-content: flex-end; }
+        
+        /* Alert */
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .alert-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; }
+        .alert-success { background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #6ee7b7; }
+        
+        /* Result Box */
+        .result-box {
+            background: rgba(30, 41, 59, 0.5);
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .subscriber-info h3 { font-size: 1.3rem; margin-bottom: 5px; }
+        .subscriber-info p { color: #94a3b8; margin-bottom: 5px; }
+        
+        /* Invoice Item */
+        .invoice-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .invoice-item.paid { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .invoice-item.unpaid { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); }
+        
+        /* Support Card */
+        .support-card {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.2));
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .support-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
+        .support-item {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        .support-item a { color: #22d3ee; font-size: 1.1rem; text-decoration: none; }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            border-top: 1px solid #334155;
+            margin-top: 30px;
+        }
+        
+        /* Hidden */
+        .hidden { display: none !important; }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header { flex-direction: column; gap: 15px; }
+            .tabs { flex-direction: column; }
+            .tab { text-align: center; }
+            table { font-size: 0.85rem; }
+            th, td { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo-section">
+            <div class="logo">JN</div>
+            <div>
+                <div class="company-name">جرمانا نت</div>
+                <div class="company-slogan">اختيارك الأفضل - الإنترنت الأفضل في جرمانا</div>
+            </div>
+        </div>
+        <button class="btn btn-primary" id="authBtn" onclick="showLoginModal()">🔐 دخول المسؤول</button>
+    </header>
+
+    <main class="main" id="mainContent">
+        <!-- واجهة الزبون -->
+        <div id="customerView">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">الاستعلام عن الفاتورة</div>
+                    <div class="card-desc">أدخل اسمك الثلاثي للاستعلام عن حالة الفواتير</div>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <input type="text" id="searchName" placeholder="أدخل الاسم الثلاثي كاملاً">
+                        <button class="btn btn-primary" onclick="searchSubscriber()">🔍 بحث</button>
+                    </div>
+                    <div id="searchResult"></div>
+                </div>
+            </div>
+
+            <div class="support-card">
+                <h3 style="color: #22d3ee; margin-bottom: 10px;">📞 للدعم الفني والتواصل</h3>
+                <div class="support-grid">
+                    <div class="support-item">
+                        <div style="color: #22d3ee; font-weight: bold;">Ghasan</div>
+                        <a href="tel:0992417870">0992417870</a>
+                    </div>
+                    <div class="support-item">
+                        <div style="color: #22d3ee; font-weight: bold;">Ramzy</div>
+                        <a href="tel:0959128944">0959128944</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                By Eng Ramzy Amoory 🚀
+            </div>
+        </div>
+
+        <!-- واجهة المسؤول -->
+        <div id="adminView" class="hidden">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('subscribers')">👥 المشتركين</button>
+                <button class="tab" onclick="showTab('invoices')">📄 الفواتير</button>
+                <button class="tab" onclick="showTab('inventory')">📦 المخزون</button>
+                <button class="tab" onclick="showTab('settings')">⚙️ إعدادات</button>
+            </div>
+
+            <!-- المشتركين -->
+            <div id="subscribersTab" class="card">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="color: #22d3ee;">قائمة المشتركين</h3>
+                        <button class="btn btn-success" onclick="showAddSubscriberModal()">➕ إضافة مشترك</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>الهاتف</th>
+                                    <th>الرسوم</th>
+                                    <th>الحالة</th>
+                                    <th>المستحق</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subscribersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الفواتير -->
+            <div id="invoicesTab" class="card hidden">
+                <div class="card-body">
+                    <h3 style="color: #22d3ee; margin-bottom: 15px;">قائمة الفواتير</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>المشترك</th>
+                                    <th>الشهر</th>
+                                    <th>المبلغ</th>
+                                    <th>الحالة</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- المخزون -->
+            <div id="inventoryTab" class="card hidden">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="color: #22d3ee;">إدارة المخزون</h3>
+                        <button class="btn btn-success" onclick="showAddProductModal()">➕ إضافة منتج</button>
+                    </div>
+                    <div id="productsList"></div>
+                    <hr style="border-color: #334155; margin: 20px 0;">
+                    <h4 style="color: #22d3ee; margin-bottom: 15px;">إضافة حركة مخزون</h4>
+                    <div class="input-group" style="flex-wrap: wrap;">
+                        <select id="productSelect" style="min-width: 200px;"></select>
+                        <select id="transactionType">
+                            <option value="in">📥 داخل</option>
+                            <option value="out">📤 خارج</option>
+                        </select>
+                        <input type="number" id="transactionQty" placeholder="الكمية" style="width: 100px;">
+                        <input type="text" id="transactionNote" placeholder="ملاحظة">
+                        <button class="btn btn-primary" onclick="addTransaction()">حفظ</button>
+                    </div>
+                    <div id="transactionsList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- الإعدادات -->
+            <div id="settingsTab" class="card hidden">
+                <div class="card-body">
+                    <h3 style="color: #22d3ee; margin-bottom: 15px;">إعدادات النظام</h3>
+                    <div style="max-width: 400px;">
+                        <label style="display: block; margin-bottom: 5px; color: #94a3b8;">اسم المستخدم الجديد</label>
+                        <input type="text" id="newUsername" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #94a3b8;">كلمة المرور الجديدة</label>
+                        <input type="password" id="newPassword" style="margin-bottom: 15px;">
+                        <button class="btn btn-primary" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal للدخول -->
+    <div id="loginModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🔐 تسجيل الدخول</div>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('loginModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="loginError" class="alert alert-danger hidden"></div>
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">اسم المستخدم</label>
+                <input type="text" id="loginUsername" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">كلمة المرور</label>
+                <input type="password" id="loginPassword" onkeypress="if(event.key==='Enter')login()">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('loginModal')">إلغاء</button>
+                <button class="btn btn-primary" onclick="login()">دخول</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal إضافة مشترك -->
+    <div id="addSubscriberModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">➕ إضافة مشترك جديد</div>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('addSubscriberModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">الاسم الثلاثي *</label>
+                <input type="text" id="subName" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">رقم الهاتف *</label>
+                <input type="text" id="subPhone" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">العنوان</label>
+                <input type="text" id="subAddress" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">الرسوم الشهرية (ل.س)</label>
+                <input type="number" id="subFee">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addSubscriberModal')">إلغاء</button>
+                <button class="btn btn-success" onclick="addSubscriber()">إضافة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal إضافة فاتورة -->
+    <div id="addInvoiceModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📄 إضافة فاتورة</div>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('addInvoiceModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="invoiceSubId">
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">الشهر</label>
+                <input type="month" id="invoiceMonth" style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">المبلغ (ل.س)</label>
+                <input type="number" id="invoiceAmount">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addInvoiceModal')">إلغاء</button>
+                <button class="btn btn-success" onclick="addInvoice()">إضافة</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // البيانات الافتراضية
+        const DEFAULT_CREDENTIALS = { username: 'admin', password: 'admin12344321' };
+        
+        // تحميل البيانات من localStorage
+        function loadData() {
+            return {
+                subscribers: JSON.parse(localStorage.getItem('subscribers') || '[]'),
+                invoices: JSON.parse(localStorage.getItem('invoices') || '[]'),
+                products: JSON.parse(localStorage.getItem('products') || '[]'),
+                transactions: JSON.parse(localStorage.getItem('transactions') || '[]'),
+                settings: JSON.parse(localStorage.getItem('settings') || JSON.stringify(DEFAULT_CREDENTIALS))
+            };
+        }
+        
+        // حفظ البيانات
+        function saveData(key, value) {
+            localStorage.setItem(key, JSON.stringify(value));
+        }
+        
+        // عرض Modal
+        function showModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+        
+        // إغلاق Modal
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+        
+        // عرض تسجيل الدخول
+        function showLoginModal() {
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            showModal('loginModal');
+        }
+        
+        // تسجيل الدخول
+        function login() {
+            const data = loadData();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (username === data.settings.username && password === data.settings.password) {
+                closeModal('loginModal');
+                document.getElementById('customerView').classList.add('hidden');
+                document.getElementById('adminView').classList.remove('hidden');
+                document.getElementById('authBtn').textContent = '🚪 خروج';
+                document.getElementById('authBtn').onclick = logout;
+                refreshAdminData();
+            } else {
+                document.getElementById('loginError').textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+        
+        // تسجيل الخروج
+        function logout() {
+            document.getElementById('customerView').classList.remove('hidden');
+            document.getElementById('adminView').classList.add('hidden');
+            document.getElementById('authBtn').textContent = '🔐 دخول المسؤول';
+            document.getElementById('authBtn').onclick = showLoginModal;
+        }
+        
+        // عرض التبويبات
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('subscribersTab').classList.add('hidden');
+            document.getElementById('invoicesTab').classList.add('hidden');
+            document.getElementById('inventoryTab').classList.add('hidden');
+            document.getElementById('settingsTab').classList.add('hidden');
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+        }
+        
+        // البحث عن مشترك
+        function searchSubscriber() {
+            const name = document.getElementById('searchName').value.trim();
+            const resultDiv = document.getElementById('searchResult');
+            
+            if (name.length < 3) {
+                resultDiv.innerHTML = '<div class="alert alert-danger">الرجاء إدخال الاسم الثلاثي كاملاً</div>';
+                return;
+            }
+            
+            const data = loadData();
+            const subscriber = data.subscribers.find(s => s.name.includes(name));
+            
+            if (!subscriber) {
+                resultDiv.innerHTML = '<div class="alert alert-danger">لا يوجد مشترك بهذا الاسم</div>';
+                return;
+            }
+            
+            const invoices = data.invoices.filter(i => i.subscriberId === subscriber.id);
+            const totalDue = invoices.filter(i => !i.paid).reduce((sum, i) => sum + i.amount, 0);
+            
+            let html = `
+                <div class="result-box">
+                    <div class="subscriber-info">
+                        <h3>${subscriber.name}</h3>
+                        <p>📞 ${subscriber.phone}</p>
+                        ${subscriber.address ? `<p>📍 ${subscriber.address}</p>` : ''}
+                        <p>💰 الرسوم الشهرية: ${subscriber.fee.toLocaleString()} ل.س</p>
+                    </div>
+            `;
+            
+            if (totalDue > 0) {
+                html += `<div class="alert alert-danger" style="margin-top: 15px;">
+                    <strong>إجمالي المبلغ المستحق: ${totalDue.toLocaleString()} ل.س</strong>
+                </div>`;
+            } else {
+                html += `<div class="alert alert-success" style="margin-top: 15px;">
+                    ✅ مبروك! لا يوجد فواتير مستحقة
+                </div>`;
+            }
+            
+            html += '<h4 style="margin-top: 20px; color: #22d3ee;">📄 الفواتير</h4>';
+            
+            if (invoices.length > 0) {
+                invoices.forEach(inv => {
+                    const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+                    const [y, m] = inv.month.split('-');
+                    const monthName = monthNames[parseInt(m) - 1] + ' ' + y;
+                    
+                    html += `
+                        <div class="invoice-item ${inv.paid ? 'paid' : 'unpaid'}">
+                            <div>
+                                <div style="font-weight: bold;">${monthName}</div>
+                            </div>
+                            <div style="text-align: left;">
+                                <div>${inv.amount.toLocaleString()} ل.س</div>
+                                <span class="badge ${inv.paid ? 'badge-success' : 'badge-danger'}">${inv.paid ? 'مدفوعة' : 'غير مدفوعة'}</span>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                html += '<p style="color: #94a3b8; text-align: center; padding: 20px;">لا توجد فواتير</p>';
+            }
+            
+            html += '</div>';
+            resultDiv.innerHTML = html;
+        }
+        
+        // تحديث بيانات المسؤول
+        function refreshAdminData() {
+            const data = loadData();
+            
+            // جدول المشتركين
+            let subsHtml = '';
+            data.subscribers.forEach(sub => {
+                const totalDue = data.invoices.filter(i => i.subscriberId === sub.id && !i.paid).reduce((sum, i) => sum + i.amount, 0);
+                subsHtml += `
+                    <tr>
+                        <td>${sub.name}</td>
+                        <td>${sub.phone}</td>
+                        <td>${sub.fee.toLocaleString()} ل.س</td>
+                        <td><span class="badge ${sub.active ? 'badge-success' : 'badge-danger'}">${sub.active ? 'نشط' : 'متوقف'}</span></td>
+                        <td style="color: ${totalDue > 0 ? '#ef4444' : '#10b981'}">${totalDue > 0 ? totalDue.toLocaleString() + ' ل.س' : 'لا يوجد'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="showAddInvoiceModal(${sub.id}, ${sub.fee})">📄</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteSubscriber(${sub.id})">🗑️</button>
+                        </td>
+                    </tr>`;
+            });
+            document.getElementById('subscribersTable').innerHTML = subsHtml || '<tr><td colspan="6" style="text-align:center;color:#94a3b8;">لا يوجد مشتركين</td></tr>';
+            
+            // جدول الفواتير
+            let invHtml = '';
+            data.invoices.forEach(inv => {
+                const sub = data.subscribers.find(s => s.id === inv.subscriberId);
+                const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+                const [y, m] = inv.month.split('-');
+                const monthName = monthNames[parseInt(m) - 1] + ' ' + y;
+                
+                invHtml += `
+                    <tr>
+                        <td>${sub ? sub.name : '-'}</td>
+                        <td>${monthName}</td>
+                        <td>${inv.amount.toLocaleString()} ل.س</td>
+                        <td><span class="badge ${inv.paid ? 'badge-success' : 'badge-danger'}">${inv.paid ? 'مدفوعة' : 'غير مدفوعة'}</span></td>
+                        <td><button class="btn btn-sm ${inv.paid ? 'btn-danger' : 'btn-success'}" onclick="toggleInvoice(${inv.id})">${inv.paid ? '❌ إلغاء' : '✅ دفع'}</button></td>
+                    </tr>`;
+            });
+            document.getElementById('invoicesTable').innerHTML = invHtml || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">لا توجد فواتير</td></tr>';
+            
+            // قائمة المنتجات
+            let prodHtml = '';
+            data.products.forEach(p => {
+                prodHtml += `
+                    <div class="invoice-item ${p.stock <= p.minStock ? 'unpaid' : 'paid'}">
+                        <div>
+                            <div style="font-weight: bold;">${p.name}</div>
+                            <div style="color: #94a3b8; font-size: 0.9rem;">${p.category}</div>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-size: 1.2rem; font-weight: bold; color: ${p.stock <= p.minStock ? '#ef4444' : '#10b981'};">${p.stock} ${p.unit}</div>
+                            ${p.stock <= p.minStock ? '<span class="badge badge-danger">منخفض!</span>' : ''}
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('productsList').innerHTML = prodHtml || '<p style="color:#94a3b8;text-align:center;">لا توجد منتجات</p>';
+            
+            // قائمة المنتجات في Select
+            let selectHtml = '<option value="">اختر منتج</option>';
+            data.products.forEach(p => {
+                selectHtml += `<option value="${p.id}">${p.name} (المخزون: ${p.stock})</option>`;
+            });
+            document.getElementById('productSelect').innerHTML = selectHtml;
+            
+            // قائمة الحركات
+            let transHtml = '<h4 style="color:#22d3ee;margin-bottom:10px;">آخر الحركات</h4>';
+            data.transactions.slice(-10).reverse().forEach(t => {
+                const prod = data.products.find(p => p.id === t.productId);
+                transHtml += `
+                    <div class="invoice-item ${t.type === 'in' ? 'paid' : 'unpaid'}">
+                        <div>
+                            <div style="font-weight: bold;">${prod ? prod.name : '-'}</div>
+                            <div style="color: #94a3b8; font-size: 0.85rem;">${t.note || '-'}</div>
+                        </div>
+                        <div style="font-weight: bold; color: ${t.type === 'in' ? '#10b981' : '#ef4444'};">
+                            ${t.type === 'in' ? '+' : '-'}${t.qty}
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('transactionsList').innerHTML = transHtml;
+            
+            // الإعدادات
+            document.getElementById('newUsername').value = data.settings.username;
+        }
+        
+        // إضافة مشترك
+        function showAddSubscriberModal() {
+            document.getElementById('subName').value = '';
+            document.getElementById('subPhone').value = '';
+            document.getElementById('subAddress').value = '';
+            document.getElementById('subFee').value = '';
+            showModal('addSubscriberModal');
+        }
+        
+        function addSubscriber() {
+            const name = document.getElementById('subName').value.trim();
+            const phone = document.getElementById('subPhone').value.trim();
+            const address = document.getElementById('subAddress').value.trim();
+            const fee = parseFloat(document.getElementById('subFee').value) || 0;
+            
+            if (!name || !phone) {
+                alert('الاسم ورقم الهاتف مطلوبان');
+                return;
+            }
+            
+            const data = loadData();
+            const newId = data.subscribers.length > 0 ? Math.max(...data.subscribers.map(s => s.id)) + 1 : 1;
+            
+            data.subscribers.push({
+                id: newId,
+                name,
+                phone,
+                address,
+                fee,
+                active: true
+            });
+            
+            saveData('subscribers', data.subscribers);
+            closeModal('addSubscriberModal');
+            refreshAdminData();
+            alert('تم إضافة المشترك بنجاح');
+        }
+        
+        // حذف مشترك
+        function deleteSubscriber(id) {
+            if (!confirm('هل أنت متأكد من حذف هذا المشترك؟')) return;
+            
+            let data = loadData();
+            data.subscribers = data.subscribers.filter(s => s.id !== id);
+            data.invoices = data.invoices.filter(i => i.subscriberId !== id);
+            saveData('subscribers', data.subscribers);
+            saveData('invoices', data.invoices);
+            refreshAdminData();
+            alert('تم حذف المشترك');
+        }
+        
+        // إضافة فاتورة
+        function showAddInvoiceModal(subId, fee) {
+            document.getElementById('invoiceSubId').value = subId;
+            const now = new Date();
+            document.getElementById('invoiceMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('invoiceAmount').value = fee;
+            showModal('addInvoiceModal');
+        }
+        
+        function addInvoice() {
+            const subscriberId = parseInt(document.getElementById('invoiceSubId').value);
+            const month = document.getElementById('invoiceMonth').value;
+            const amount = parseFloat(document.getElementById('invoiceAmount').value);
+            
+            if (!month || !amount) {
+                alert('جميع البيانات مطلوبة');
+                return;
+            }
+            
+            const data = loadData();
+            
+            // التحقق من عدم وجود فاتورة لنفس الشهر
+            if (data.invoices.find(i => i.subscriberId === subscriberId && i.month === month)) {
+                alert('يوجد فاتورة لهذا الشهر بالفعل');
+                return;
+            }
+            
+            const newId = data.invoices.length > 0 ? Math.max(...data.invoices.map(i => i.id)) + 1 : 1;
+            
+            data.invoices.push({
+                id: newId,
+                subscriberId,
+                month,
+                amount,
+                paid: false
+            });
+            
+            saveData('invoices', data.invoices);
+            closeModal('addInvoiceModal');
+            refreshAdminData();
+            alert('تم إضافة الفاتورة بنجاح');
+        }
+        
+        // تغيير حالة الفاتورة
+        function toggleInvoice(id) {
+            const data = loadData();
+            const invoice = data.invoices.find(i => i.id === id);
+            if (invoice) {
+                invoice.paid = !invoice.paid;
+                saveData('invoices', data.invoices);
+                refreshAdminData();
+            }
+        }
+        
+        // إضافة منتج
+        function showAddProductModal() {
+            const name = prompt('اسم المنتج:');
+            if (!name) return;
+            
+            const category = prompt('التصنيف (سويتش، راوتر، كبل...)');
+            const unit = prompt('الوحدة (قطعة، متر...)') || 'قطعة';
+            const stock = parseInt(prompt('الكمية الحالية')) || 0;
+            const minStock = parseInt(prompt('الحد الأدنى للتنبيه')) || 5;
+            
+            const data = loadData();
+            const newId = data.products.length > 0 ? Math.max(...data.products.map(p => p.id)) + 1 : 1;
+            
+            data.products.push({
+                id: newId,
+                name,
+                category: category || 'عام',
+                unit,
+                stock,
+                minStock
+            });
+            
+            saveData('products', data.products);
+            refreshAdminData();
+            alert('تم إضافة المنتج');
+        }
+        
+        // إضافة حركة مخزون
+        function addTransaction() {
+            const productId = parseInt(document.getElementById('productSelect').value);
+            const type = document.getElementById('transactionType').value;
+            const qty = parseInt(document.getElementById('transactionQty').value);
+            const note = document.getElementById('transactionNote').value;
+            
+            if (!productId || !qty) {
+                alert('اختر المنتج وأدخل الكمية');
+                return;
+            }
+            
+            const data = loadData();
+            const product = data.products.find(p => p.id === productId);
+            
+            if (type === 'out' && product.stock < qty) {
+                alert('الكمية المطلوبة أكبر من المخزون الحالي');
+                return;
+            }
+            
+            // تحديث المخزون
+            product.stock = type === 'in' ? product.stock + qty : product.stock - qty;
+            
+            // إضافة الحركة
+            const newId = data.transactions.length > 0 ? Math.max(...data.transactions.map(t => t.id)) + 1 : 1;
+            data.transactions.push({
+                id: newId,
+                productId,
+                type,
+                qty,
+                note,
+                date: new Date().toISOString()
+            });
+            
+            saveData('products', data.products);
+            saveData('transactions', data.transactions);
+            
+            document.getElementById('transactionQty').value = '';
+            document.getElementById('transactionNote').value = '';
+            refreshAdminData();
+            alert('تم تسجيل الحركة');
+        }
+        
+        // حفظ الإعدادات
+        function saveSettings() {
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('newPassword').value.trim();
+            
+            if (!username || !password) {
+                alert('أدخل اسم المستخدم وكلمة المرور');
+                return;
+            }
+            
+            const data = loadData();
+            data.settings = { username, password };
+            saveData('settings', data.settings);
+            alert('تم حفظ الإعدادات بنجاح');
+        }
+        
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            document.getElementById('invoiceMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        });
+    </script>
+</body>
+</html>

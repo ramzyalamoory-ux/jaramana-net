@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>غير متصل - Jaramana Net</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Tajawal', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 400px;
+    }
+    
+    .icon {
+      font-size: 80px;
+      margin-bottom: 1.5rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(0.95); }
+    }
+    
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      color: #0891b2;
+    }
+    
+    p {
+      font-size: 1rem;
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    
+    .status {
+      background: rgba(234, 179, 8, 0.2);
+      border: 1px solid #eab308;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .status-icon {
+      font-size: 24px;
+      margin-bottom: 0.5rem;
+    }
+    
+    .status-text {
+      color: #fbbf24;
+      font-size: 0.9rem;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+      color: white;
+      border: none;
+      padding: 1rem 2.5rem;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(8, 145, 178, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .logo {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      margin-bottom: 1rem;
+      border: 3px solid #0891b2;
+    }
+    
+    .footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .feature {
+      background: rgba(255,255,255,0.05);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    
+    .feature span {
+      margin-left: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/logo-jaramana.jpg" alt="Logo" class="logo">
+    
+    <div class="icon">📡</div>
+    
+    <h1>أنت غير متصل بالإنترنت</h1>
+    
+    <div class="status">
+      <div class="status-icon">⚠️</div>
+      <div class="status-text">لا يوجد اتصال بالإنترنت</div>
+    </div>
+    
+    <p>
+      لا تقلق! يمكنك استخدام التطبيق بشكل محدود.
+      البيانات المحفوظة سابقاً متاحة للعرض.
+    </p>
+    
+    <div class="features">
+      <div class="feature"><span>✓</span> عرض البيانات المحفوظة</div>
+      <div class="feature"><span>✓</span> إضافة مشتركين جدد</div>
+    </div>
+    
+    <button onclick="location.reload()">
+      🔄 إعادة المحاولة
+    </button>
+    
+    <div class="footer">
+      <p>Jaramana Net © 2026</p>
+      <p>Eng Ramzy Company</p>
+    </div>
+  </div>
+  
+  <script>
+    // محاولة إعادة الاتصال تلقائياً
+    window.addEventListener('online', () => {
+      location.reload();
+    });
+    
+    // فحص الاتصال كل 5 ثواني
+    setInterval(() => {
+      if (navigator.onLine) {
+        location.reload();
+      }
+    }, 5000);
+  </script>
+</body>
+</html>

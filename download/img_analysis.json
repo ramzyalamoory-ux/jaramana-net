@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The image features a stylized, neon-lit graphic design with a dark, almost black background. At the center, there are two large, interconnected letters: a stylized \"J\" on the left and a stylized \"N\" on the right. These letters are designed to resemble **circuit boards**, with intricate pathways, nodes, and binary code (0s and 1s) integrated into their structure. The circuit elements are highlighted with glowing neon lines in shades of **cyan (light blue)** and **magenta (pink)**, creating a futuristic, tech-inspired aesthetic.  \n\nBeneath the \"J\" and \"N\" letters, there is text in two languages:  \n- In English: *\"JaraMana Net\"* (rendered in a bold, light blue, 3D-style font).  \n- In Arabic: *\"نت مارا جرة\"* (also in a matching light blue, 3D-style font, positioned directly below the English text).  \n\n\nThe overall design conveys a modern, digital theme, likely representing a brand or platform related to technology, networking, or digital services. The neon colors and circuit board motif emphasize innovation and connectivity.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1772053350,
+  "id": "202602260502210497736780af4ea2",
+  "model": "glm-4.6v",
+  "object": "chat.completion",
+  "request_id": "202602260502210497736780af4ea2",
+  "usage": {
+    "completion_tokens": 242,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 928,
+    "prompt_tokens_details": {
+      "cached_tokens": 4
+    },
+    "total_tokens": 1170
+  }
+}

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جرمانا نت - تثبيت التطبيق</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 30px 0;
+        }
+        .logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-bottom: 15px;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+        }
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(to left, #60a5fa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+        .subtitle { color: #94a3b8; margin-bottom: 20px; }
+        .section {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .section h3 {
+            color: #22d3ee;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 10px;
+        }
+        .step-number {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .step-content { flex: 1; }
+        .step-content h4 { color: #f1f5f9; margin-bottom: 5px; }
+        .step-content p { color: #94a3b8; font-size: 0.9rem; }
+        .screenshot {
+            width: 100%;
+            border-radius: 10px;
+            margin: 10px 0;
+            border: 2px solid #334155;
+        }
+        .feature-list {
+            list-style: none;
+        }
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .feature-list li:last-child { border-bottom: none; }
+        .check { color: #22c55e; font-size: 1.2rem; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="/logo-jaramana.jpg" alt="جرمانا نت" class="logo">
+            <h1>جرمانا نت</h1>
+            <p class="subtitle">Jaramana Net - PWA</p>
+            <span class="badge">✓ يدعم العمل بدون إنترنت</span>
+        </div>
+
+        <a href="/" class="btn btn-primary">
+            🌐 افتح الموقع الآن
+        </a>
+
+        <!-- Android Section -->
+        <div class="section">
+            <h3>📱 تثبيت على أندرويد</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>افتح الموقع في Chrome</h4>
+                    <p>افتح موقع جرمانا نت في متصفح Google Chrome</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>اضغط على القائمة (⋮)</h4>
+                    <p>اضغط على النقاط الثلاث في أعلى يمين الشاشة</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>اختر "إضافة إلى الشاشة الرئيسية"</h4>
+                    <p>أو "تثبيت التطبيق" من القائمة</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>اضغط "تثبيت"</h4>
+                    <p>سيظهر أيقونة التطبيق على شاشتك الرئيسية!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- iOS Section -->
+        <div class="section">
+            <h3>🍎 تثبيت على iPhone/iPad</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>افتح الموقع في Safari</h4>
+                    <p>افتح موقع جرمانا نت في متصفح Safari</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>اضغط على زر المشاركة</h4>
+                    <p>اضغط على أيقونة المشاركة (مربع بسهم) في أسفل الشاشة</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>اختر "إضافة إلى الشاشة الرئيسية"</h4>
+                    <p>مرر للأسفل واضغط على هذا الخيار</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>اضغط "إضافة"</h4>
+                    <p>سيظهر أيقونة التطبيق على شاشتك!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="section">
+            <h3>✨ مميزات التطبيق</h3>
+            <ul class="feature-list">
+                <li>
+                    <span class="check">✓</span>
+                    <span>يعمل بدون إنترنت (offline)</span>
+                </li>
+                <li>
+                    <span class="check">✓</span>
+                    <span>إضافة وتعديل البيانات بدون نت</span>
+                </li>
+                <li>
+                    <span class="check">✓</span>
+                    <span>مزامنة تلقائية عند عودة الإنترنت</span>
+                </li>
+                <li>
+                    <span class="check">✓</span>
+                    <span>سريع كالتطبيق الأصلي</span>
+                </li>
+                <li>
+                    <span class="check">✓</span>
+                    <span>يعمل على جميع الأجهزة</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Login Info -->
+        <div class="section">
+            <h3>🔐 بيانات الدخول</h3>
+            <div class="step" style="margin: 0;">
+                <div class="step-content">
+                    <p><strong>المستخدم:</strong> admin</p>
+                    <p><strong>كلمة السر:</strong> 1998</p>
+                    <p><strong>PIN:</strong> 1998</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>جميع الحقوق محفوظة © Eng Ramzy Company 2026</p>
+            <p style="margin-top: 10px;">
+                📞 دعم فني: 963959128944
+            </p>
+        </div>
+    </div>
+</body>
+</html>

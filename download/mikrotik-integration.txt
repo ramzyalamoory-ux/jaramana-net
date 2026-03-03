@@ -1,0 +1,30 @@
+# ربط موقع جرمانا نت مع MikroTik
+
+## الخيار 1: Hotspot Integration
+يستخدم لما الزبون يتصل بالواي فاي ويفتح صفحة تسجيل الدخول
+
+## الخيار 2: API Integration
+لإدارة المشتركين من الموقع مباشرة (تفعيل/إيقاف/مراقبة)
+
+## الخيار 3: RADIUS
+للمصادقة المركزية
+
+---
+
+## للربط نحتاج منك:
+1. IP السيرفر MikroTik
+2. بورت API (افتراضي 8728 أو 8729)
+3. اسم المستخدم وكلمة السر للمسؤول
+4. نوع الخدمة (Hotspot / PPPoE / Static)
+
+---
+
+## مثال للإعدادات:
+
+### تفعيل API على MikroTik:
+/ip service enable api
+/ip service set api port=8728
+
+### إنشاء مستخدم للـ API:
+/user add name=api-user password=strongpassword group=api
+
