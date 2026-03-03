@@ -2219,7 +2219,7 @@ export default function Home() {
                       📤 استيراد Excel
                       <input 
                         type="file" 
-                        accept=".xlsx,.xls" 
+                        accept=".xlsx,.xls,.csv" 
                         className="hidden"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
@@ -2228,19 +2228,22 @@ export default function Home() {
                             formData.append('file', file);
                             formData.append('type', 'subscribers');
                             try {
+                              setLoading(true);
                               const res = await fetch('/api/import', {
                                 method: 'POST',
                                 body: formData,
                               });
                               const data = await res.json();
                               if (data.success) {
-                                alert(`✅ ${data.message}\nنجاح: ${data.results.success}\nفشل: ${data.results.failed}`);
+                                alert(`✅ ${data.message}\nنجاح: ${data.results?.success || 0}\nفشل: ${data.results?.failed || 0}`);
                                 loadSubscribers();
                               } else {
-                                alert('❌ ' + data.error);
+                                alert('❌ ' + (data.error || 'حدث خطأ') + '\n' + (data.details || ''));
                               }
-                            } catch (err) {
-                              alert('❌ حدث خطأ أثناء الاستيراد');
+                            } catch (err: any) {
+                              alert('❌ حدث خطأ أثناء الاستيراد: ' + (err.message || ''));
+                            } finally {
+                              setLoading(false);
                             }
                           }
                           e.target.value = '';
@@ -2695,19 +2698,22 @@ export default function Home() {
                           formData.append('file', file);
                           formData.append('type', 'inventory');
                           try {
+                            setLoadingInventory(true);
                             const res = await fetch('/api/import', {
                               method: 'POST',
                               body: formData,
                             });
                             const data = await res.json();
                             if (data.success) {
-                              alert(`✅ ${data.message}`);
+                              alert(`✅ ${data.message}\nنجاح: ${data.results?.success || 0}`);
                               loadInventory();
                             } else {
-                              alert('❌ ' + data.error);
+                              alert('❌ ' + (data.error || 'حدث خطأ') + '\n' + (data.details || ''));
                             }
-                          } catch (err) {
-                            alert('❌ حدث خطأ');
+                          } catch (err: any) {
+                            alert('❌ حدث خطأ: ' + (err.message || ''));
+                          } finally {
+                            setLoadingInventory(false);
                           }
                         }
                         e.target.value = '';

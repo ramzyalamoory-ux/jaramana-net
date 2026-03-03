@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
 
 const SUPABASE_URL = 'https://pypomilurmkzlceecukr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_R30YtCj6dqhLwjTQsrR1Uw_tcItK0JV';
@@ -11,26 +10,81 @@ const getHeaders = () => ({
   'Prefer': 'return=representation'
 });
 
-// POST - استيراد من ملف Excel
+// تحويل اسم العمود
+function mapColumn(row: any, possibleNames: string[]): any {
+  for (const name of possibleNames) {
+    if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+      return row[name];
+    }
+  }
+  return undefined;
+}
+
+// تحويل CSV إلى مصفوفة
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+  const rows: Record<string, string>[] = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+    const row: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      row[h] = values[idx] || '';
+    });
+    rows.push(row);
+  }
+  
+  return rows;
+}
+
+// POST - استيراد من ملف
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as string; // 'subscribers' or 'inventory'
+    const type = formData.get('type') as string;
 
     if (!file) {
       return NextResponse.json({ error: 'لم يتم رفع ملف' }, { status: 400 });
     }
 
     // قراءة الملف
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(sheet);
+    const text = await file.text();
+    let data: Record<string, any>[] = [];
+
+    // التحقق من نوع الملف
+    const fileName = file.name.toLowerCase();
+    
+    if (fileName.endsWith('.csv')) {
+      // ملف CSV
+      data = parseCSV(text);
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // ملف Excel
+      try {
+        const xlsx = await import('xlsx');
+        const buffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(buffer);
+        const workbook = xlsx.read(uint8Array, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        data = xlsx.utils.sheet_to_json(sheet);
+      } catch (e) {
+        // إذا فشل xlsx، نحاول كـ CSV
+        data = parseCSV(text);
+      }
+    } else {
+      // نحاول كـ CSV
+      data = parseCSV(text);
+    }
 
     if (!data || data.length === 0) {
-      return NextResponse.json({ error: 'الملف فارغ' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'الملف فارغ أو لا يحتوي بيانات صحيحة',
+        hint: 'تأكد أن الملف CSV أو Excel مع أعمدة صحيحة'
+      }, { status: 400 });
     }
 
     const results = {
@@ -42,26 +96,36 @@ export async function POST(request: NextRequest) {
 
     // استيراد المشتركين
     if (type === 'subscribers') {
-      for (const row of data) {
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
         try {
-          const subscriber: any = {
-            name: row['الاسم'] || row['name'] || row['Name'] || '',
-            phone: String(row['الهاتف'] || row['phone'] || row['Phone'] || ''),
-            address: row['العنوان'] || row['address'] || row['Address'] || '',
-            plan: row['الباقة'] || row['plan'] || row['Plan'] || '',
-            monthlyFee: Number(row['سعر الباقة'] || row['monthlyFee'] || row['Fee'] || 0),
-            balance: Number(row['الرصيد'] || row['balance'] || row['Balance'] || 0),
-            pppoeUser: row['PPPoE'] || row['pppoeUser'] || row['Username'] || null,
-            pppoePassword: row['PPPoE Password'] || row['pppoePassword'] || row['Password'] || null,
+          const name = mapColumn(row, ['الاسم', 'name', 'Name', 'اسم المشترك']);
+          const phone = String(mapColumn(row, ['الهاتف', 'phone', 'Phone', 'رقم الهاتف', 'موبايل']) || '').trim();
+          
+          if (!name || !phone) {
+            results.failed++;
+            results.errors.push(`صف ${i + 2}: الاسم والهاتف مطلوبان`);
+            continue;
+          }
+
+          const subscriber: Record<string, any> = {
+            name: String(name).trim(),
+            phone: phone,
+            address: String(mapColumn(row, ['العنوان', 'address', 'Address']) || '').trim(),
+            plan: String(mapColumn(row, ['الباقة', 'plan', 'Plan', 'السرعة']) || '').trim(),
+            monthlyFee: Number(mapColumn(row, ['سعر الباقة', 'monthlyFee', 'السعر', 'price']) || 0),
+            balance: Number(mapColumn(row, ['الرصيد', 'balance', 'المبلغ المستحق']) || 0),
             status: 'active',
             paymentStatus: 'paid',
             createdAt: new Date().toISOString(),
           };
 
-          if (!subscriber.name || !subscriber.phone) {
-            results.failed++;
-            results.errors.push(`صف ${data.indexOf(row) + 2}: الاسم والهاتف مطلوبان`);
-            continue;
+          // PPPoE اختياري
+          const pppoeUser = mapColumn(row, ['PPPoE', 'pppoeUser', 'Username', 'حساب PPPoE']);
+          const pppoePass = mapColumn(row, ['PPPoE Password', 'pppoePassword', 'Password', 'كلمة السر PPPoE']);
+          if (pppoeUser) {
+            subscriber.pppoeUser = String(pppoeUser).trim();
+            subscriber.pppoePassword = pppoePass ? String(pppoePass).trim() : '';
           }
 
           const res = await fetch(`${SUPABASE_URL}/rest/v1/Subscriber`, {
@@ -73,36 +137,38 @@ export async function POST(request: NextRequest) {
           if (res.ok) {
             results.success++;
           } else {
-            results.failed++;
             const err = await res.json();
-            results.errors.push(`صف ${data.indexOf(row) + 2}: ${err.message || 'خطأ في الإضافة'}`);
+            results.failed++;
+            results.errors.push(`صف ${i + 2}: ${err.message || err.details || JSON.stringify(err)}`);
           }
-        } catch (e) {
+        } catch (e: any) {
           results.failed++;
-          results.errors.push(`صف ${data.indexOf(row) + 2}: خطأ في المعالجة`);
+          results.errors.push(`صف ${i + 2}: ${e.message || 'خطأ'}`);
         }
       }
     }
 
     // استيراد المخزون
     if (type === 'inventory') {
-      for (const row of data) {
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
         try {
-          const product: any = {
-            name: row['المنتج'] || row['name'] || row['Name'] || row['Product'] || '',
-            category: row['التصنيف'] || row['category'] || row['Category'] || 'راوتر',
-            quantity: Number(row['الكمية'] || row['quantity'] || row['Quantity'] || 0),
-            minStock: Number(row['الحد الأدنى'] || row['minStock'] || 5),
-            price: Number(row['السعر'] || row['price'] || row['Price'] || 0),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          if (!product.name) {
+          const productName = mapColumn(row, ['المنتج', 'name', 'Name', 'Product', 'اسم المنتج']);
+          
+          if (!productName) {
             results.failed++;
-            results.errors.push(`صف ${data.indexOf(row) + 2}: اسم المنتج مطلوب`);
+            results.errors.push(`صف ${i + 2}: اسم المنتج مطلوب`);
             continue;
           }
+
+          const product: Record<string, any> = {
+            name: String(productName).trim(),
+            category: String(mapColumn(row, ['التصنيف', 'category', 'Category', 'النوع']) || 'راوتر'),
+            quantity: Number(mapColumn(row, ['الكمية', 'quantity', 'Quantity', 'عدد']) || 0),
+            minStock: Number(mapColumn(row, ['الحد الأدنى', 'minStock', 'Min']) || 5),
+            price: Number(mapColumn(row, ['السعر', 'price', 'Price']) || 0),
+            createdAt: new Date().toISOString(),
+          };
 
           const res = await fetch(`${SUPABASE_URL}/rest/v1/Inventory`, {
             method: 'POST',
@@ -113,64 +179,52 @@ export async function POST(request: NextRequest) {
           if (res.ok) {
             results.success++;
           } else {
-            results.failed++;
             const err = await res.json();
-            results.errors.push(`صف ${data.indexOf(row) + 2}: ${err.message || 'خطأ في الإضافة'}`);
+            results.failed++;
+            results.errors.push(`صف ${i + 2}: ${err.message || err.details || JSON.stringify(err)}`);
           }
-        } catch (e) {
+        } catch (e: any) {
           results.failed++;
-          results.errors.push(`صف ${data.indexOf(row) + 2}: خطأ في المعالجة`);
+          results.errors.push(`صف ${i + 2}: ${e.message || 'خطأ'}`);
         }
       }
     }
 
     return NextResponse.json({
-      success: true,
-      message: `تم استيراد ${results.success} من ${results.total} بنجاح`,
+      success: results.success > 0,
+      message: `تم استيراد ${results.success} من ${results.total}`,
       results,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Import error:', error);
     return NextResponse.json({
       error: 'حدث خطأ أثناء الاستيراد',
-      details: error instanceof Error ? error.message : 'خطأ غير معروف',
+      details: error.message,
     }, { status: 500 });
   }
 }
 
-// GET - تحميل قالب Excel
+// GET - تحميل قالب
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || 'subscribers';
 
-  let headers: string[];
-  let data: Record<string, string | number>[];
+  let csvContent: string;
+  let filename: string;
 
   if (type === 'subscribers') {
-    headers = ['الاسم', 'الهاتف', 'العنوان', 'الباقة', 'سعر الباقة', 'الرصيد', 'PPPoE', 'PPPoE Password'];
-    data = [
-      { 'الاسم': 'أحمد محمد', 'الهاتف': '0999123456', 'العنوان': 'دمشق', 'الباقة': '2 ميغا', 'سعر الباقة': 20000, 'الرصيد': 0, 'PPPoE': 'ahmed123', 'PPPoE Password': 'pass123' },
-      { 'الاسم': 'محمود علي', 'الهاتف': '0999789012', 'العنوان': 'حلب', 'الباقة': '5 ميغا', 'سعر الباقة': 30000, 'الرصيد': 5000, 'PPPoE': 'mahmoud456', 'PPPoE Password': 'pass456' },
-    ];
+    csvContent = 'الاسم,الهاتف,العنوان,الباقة,سعر الباقة,الرصيد,PPPoE,PPPoE Password\nأحمد محمد,0999123456,دمشق,2 ميغا,20000,0,user1,pass1\nمحمود علي,0999789012,حلب,5 ميغا,30000,5000,user2,pass2';
+    filename = 'template_subscribers.csv';
   } else {
-    headers = ['المنتج', 'التصنيف', 'الكمية', 'الحد الأدنى', 'السعر'];
-    data = [
-      { 'المنتج': 'راوتر TP-Link', 'التصنيف': 'راوتر', 'الكمية': 10, 'الحد الأدنى': 5, 'السعر': 50000 },
-      { 'المنتج': 'كبل شبكة 10م', 'التصنيف': 'بقية العدة', 'الكمية': 50, 'الحد الأدنى': 10, 'السعر': 5000 },
-    ];
+    csvContent = 'المنتج,التصنيف,الكمية,الحد الأدنى,السعر\nراوتر TP-Link,راوتر,10,5,50000\nكبل شبكة 10م,بقية العدة,50,10,5000\nسويتش 8 بورت,أخرى,5,2,30000';
+    filename = 'template_inventory.csv';
   }
 
-  const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-
-  const buffer = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
-
-  return new NextResponse(Buffer.from(buffer, 'base64'), {
+  return new NextResponse('\ufeff' + csvContent, {
     headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="template_${type}.xlsx"`,
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
     },
   });
 }
