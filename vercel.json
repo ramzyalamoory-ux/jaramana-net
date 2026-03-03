@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/suspend-expired",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/radius-sync",
+      "schedule": "0 3 * * *"
     }
   ],
   "headers": [
